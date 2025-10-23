@@ -3,8 +3,6 @@ import {
   LayoutDashboard,
   BarChart3,
   Settings,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   X,
   Truck,
@@ -26,8 +24,6 @@ import logo from '../assets/logo.png';
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  isCollapsed: boolean;
-  setIsCollapsed: (collapsed: boolean) => void;
   isMobileOpen: boolean;
   setIsMobileOpen: (open: boolean) => void;
 }
@@ -35,8 +31,6 @@ interface SidebarProps {
 export function Sidebar({
   activeTab,
   setActiveTab,
-  isCollapsed,
-  setIsCollapsed,
   isMobileOpen,
   setIsMobileOpen
 }: SidebarProps) {
@@ -56,7 +50,6 @@ export function Sidebar({
   // Items principales sin subsecciones
   const mainMenuItems = [
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
-    { id: 'analytics', label: 'Analíticas', icon: BarChart3 },
   ];
 
   // Secciones con subsecciones
@@ -67,8 +60,8 @@ export function Sidebar({
       icon: ClipboardList,
       items: [
         { id: 'operaciones-seguimiento', label: 'Seguimiento de envíos', icon: Package },
-        { id: 'operaciones-hojas-ruta', label: 'Hojas de ruta / Despachos', icon: Route },
-        { id: 'operaciones-incidencias', label: 'Incidencias y no-entregas', icon: AlertTriangle },
+        { id: 'operaciones-hojas-ruta', label: 'Hojas de rutas ', icon: Route },
+        { id: 'operaciones-incidencias', label: 'Incidencias ', icon: AlertTriangle },
       ]
     },
     {
@@ -129,9 +122,6 @@ export function Sidebar({
   };
 
   const handleSectionClick = (sectionId: string) => {
-    if (isCollapsed) {
-      setIsCollapsed(false);
-    }
     setExpandedSections(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
   };
 
@@ -143,9 +133,9 @@ export function Sidebar({
   const sidebarContent = (
     <>
       {/* Header */}
-      <div className={`p-6 border-b border-white/20 ${isCollapsed ? 'px-4' : ''}`}>
+      <div className="p-6 border-b border-white/20">
         <div className="flex items-center justify-center">
-          <div className={`flex items-center justify-center ${isCollapsed ? 'w-12 h-12' : 'w-32 h-32'}`}>
+          <div className="flex items-center justify-center w-32 h-32">
             <img src={logo} alt="PEPACK Logo" className="w-full h-full object-contain" />
           </div>
         </div>
@@ -162,21 +152,13 @@ export function Sidebar({
             <button
               key={item.id}
               onClick={() => handleMenuItemClick(item.id)}
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-xl text-left transition-all duration-300 group relative ${isActive
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 group relative ${isActive
                 ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-white transform translate-x-1'
                 : 'text-gray-700 hover:bg-white/20 hover:translate-x-1'
                 }`}
-              title={isCollapsed ? item.label : undefined}
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
-              {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
-
-              {/* Tooltip for collapsed state */}
-              {isCollapsed && (
-                <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
-                  {item.label}
-                </div>
-              )}
+              <span className="whitespace-nowrap">{item.label}</span>
             </button>
           );
         })}
@@ -191,33 +173,21 @@ export function Sidebar({
             <div key={section.id}>
               <button
                 onClick={() => handleSectionClick(section.id)}
-                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-xl text-left transition-all duration-300 group relative ${isActive
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 group relative ${isActive
                   ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-white transform translate-x-1'
                   : 'text-gray-700 hover:bg-white/20 hover:translate-x-1'
                   }`}
-                title={isCollapsed ? section.label : undefined}
               >
                 <SectionIcon className="w-5 h-5 flex-shrink-0" />
-                {!isCollapsed && (
-                  <>
-                    <span className="flex-1 whitespace-nowrap">{section.label}</span>
-                    <ChevronDown
-                      className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''
-                        }`}
-                    />
-                  </>
-                )}
-
-                {/* Tooltip for collapsed state */}
-                {isCollapsed && (
-                  <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
-                    {section.label}
-                  </div>
-                )}
+                <span className="flex-1 whitespace-nowrap">{section.label}</span>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''
+                    }`}
+                />
               </button>
 
               {/* Submenú de la sección */}
-              {!isCollapsed && isExpanded && (
+              {isExpanded && (
                 <div className="mt-2 ml-4 space-y-1 animate-fade-in">
                   {section.items.map((subItem) => {
                     const SubIcon = subItem.icon;
@@ -246,48 +216,24 @@ export function Sidebar({
         {/* Item final de Configuración */}
         <button
           onClick={() => handleMenuItemClick(configMenuItem.id)}
-          className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-xl text-left transition-all duration-300 group relative ${activeTab === configMenuItem.id
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 group relative ${activeTab === configMenuItem.id
             ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-white transform translate-x-1'
             : 'text-gray-700 hover:bg-white/20 hover:translate-x-1'
             }`}
-          title={isCollapsed ? configMenuItem.label : undefined}
         >
           <Settings className="w-5 h-5 flex-shrink-0" />
-          {!isCollapsed && <span className="whitespace-nowrap">{configMenuItem.label}</span>}
-
-          {/* Tooltip for collapsed state */}
-          {isCollapsed && (
-            <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
-              {configMenuItem.label}
-            </div>
-          )}
+          <span className="whitespace-nowrap">{configMenuItem.label}</span>
         </button>
       </nav>
 
       {/* Backend Status */}
-      <div className={`p-4 border-t border-white/20 ${isCollapsed ? 'px-2' : ''}`}>
-        {isCollapsed ? (
-          <div className="flex justify-center">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Info className="w-4 h-4 text-blue-700" />
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-blue-100 text-blue-700 border border-blue-200">
-            <Info className="w-4 h-4" />
-            <span>Demo Mode</span>
-          </div>
-        )}
+      <div className="p-4 border-t border-white/20">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-blue-100 text-blue-700 border border-blue-200">
+          <Info className="w-4 h-4" />
+          <span>Demo Mode</span>
+        </div>
       </div>
 
-      {/* Collapse Toggle Button - Desktop Only */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="hidden lg:flex absolute -right-3 top-20 w-6 h-6 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-full items-center justify-center text-white shadow-lg hover:shadow-xl transition-all duration-300 z-10"
-        title={isCollapsed ? 'Expandir' : 'Contraer'}
-      >
-        {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-      </button>
     </>
   );
 
@@ -303,8 +249,7 @@ export function Sidebar({
 
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col shadow-2xl transition-all duration-300 relative ${isCollapsed ? 'w-20' : 'w-64'
-          }`}
+        className="hidden lg:flex flex-col shadow-2xl transition-all duration-300 relative w-64"
         style={glassStyle}
       >
         {sidebarContent}

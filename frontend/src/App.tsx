@@ -4,13 +4,16 @@ import { Sidebar } from "./components/Sidebar";
 import { Dashboard } from "./pages/Dashboard";
 import { Analitica } from "./pages/Analitica";
 import { Configuration } from "./pages/Configuration";
+import { SeguimientoEnvios } from "./pages/SeguimientoEnvios";
+import { HojasRuta } from "./pages/HojasRuta";
+import { IncidenciasNoEntregas } from "./pages/IncidenciasNoEntregas";
+import { ConfiguracionSistema } from "./pages/ConfiguracionSistema";
 import { Toaster } from "./components/ui/sonner";
 import { Menu } from "lucide-react";
 
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Determinar el tab activo basado en la ruta actual
@@ -18,6 +21,10 @@ export default function App() {
     const path = location.pathname;
     if (path === "/") return "dashboard";
     if (path === "/analitica") return "analytics";
+    if (path === "/operaciones-seguimiento") return "operaciones-seguimiento";
+    if (path === "/operaciones-hojas-ruta") return "operaciones-hojas-ruta";
+    if (path === "/operaciones-incidencias") return "operaciones-incidencias";
+    if (path === "/configuracion-sistema") return "configuracion-sistema";
     if (path.startsWith("/config")) return path.replace("/config-", "config-");
     if (path.startsWith("/recursos")) return path.replace("/recursos-", "recursos-");
     return "dashboard";
@@ -30,6 +37,14 @@ export default function App() {
       navigate("/");
     } else if (tabId === "analytics") {
       navigate("/analitica");
+    } else if (tabId === "operaciones-seguimiento") {
+      navigate("/operaciones-seguimiento");
+    } else if (tabId === "operaciones-hojas-ruta") {
+      navigate("/operaciones-hojas-ruta");
+    } else if (tabId === "operaciones-incidencias") {
+      navigate("/operaciones-incidencias");
+    } else if (tabId === "configuracion-sistema") {
+      navigate("/configuracion-sistema");
     } else if (tabId.startsWith("config-")) {
       navigate(`/config-${tabId.replace("config-", "")}`);
     } else if (tabId.startsWith("recursos-")) {
@@ -66,16 +81,17 @@ export default function App() {
         <Sidebar
           activeTab={activeTab}
           setActiveTab={handleNavigation}
-          isCollapsed={isSidebarCollapsed}
-          setIsCollapsed={setIsSidebarCollapsed}
           isMobileOpen={isMobileSidebarOpen}
           setIsMobileOpen={setIsMobileSidebarOpen}
         />
-        <main className={`flex-1 p-4 md:p-6 transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-0' : 'lg:ml-0'
-          }`}>
+        <main className="flex-1 p-4 md:p-6 transition-all duration-300">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/analitica" element={<Analitica />} />
+            <Route path="/operaciones-seguimiento" element={<SeguimientoEnvios />} />
+            <Route path="/operaciones-hojas-ruta" element={<HojasRuta />} />
+            <Route path="/operaciones-incidencias" element={<IncidenciasNoEntregas />} />
+            <Route path="/configuracion-sistema" element={<ConfiguracionSistema />} />
             <Route path="/config-vehiculos" element={<Configuration activeSubPage="config-vehiculos" />} />
             <Route path="/config-cotizacion" element={<Configuration activeSubPage="config-cotizacion" />} />
             <Route path="/config-motivos" element={<Configuration activeSubPage="config-motivos" />} />
