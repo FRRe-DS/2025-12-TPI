@@ -171,16 +171,61 @@ export function CentrosStock() {
   };
 
   const handleSave = () => {
+    const errores: string[] = [];
+
+    // Validar Nombre
     if (!formData.nombre.trim()) {
-      toast.error("El nombre del centro es requerido");
-      return;
+      errores.push("El campo Nombre es requerido y no puede estar vacío");
     }
-    if (!formData.direccion.trim() || !formData.localidad.trim() || !formData.provincia.trim()) {
-      toast.error("Completa dirección, localidad y provincia");
-      return;
+
+    // Validar Dirección
+    if (!formData.direccion.trim()) {
+      errores.push("El campo Dirección es requerido y no puede estar vacío");
     }
+
+    // Validar Localidad
+    if (!formData.localidad.trim()) {
+      errores.push("El campo Localidad es requerido y no puede estar vacío");
+    }
+
+    // Validar Provincia
+    if (!formData.provincia.trim()) {
+      errores.push("El campo Provincia es requerido y no puede estar vacío");
+    }
+
+    // Validar Código postal - solo alfanuméricos
     if (!formData.codigoPostal.trim()) {
-      toast.error("El código postal es requerido");
+      errores.push("El campo Código postal es requerido y no puede estar vacío");
+    } else if (!/^[a-zA-Z0-9]+$/.test(formData.codigoPostal.trim())) {
+      errores.push("El Código postal debe contener solo letras y números (sin espacios ni caracteres especiales)");
+    }
+
+    // Validar Horario de recolección
+    if (!formData.horarioRecoleccion.trim()) {
+      errores.push("El campo Horario de recolección es requerido y no puede estar vacío");
+    }
+
+    // Validar Contacto
+    if (!formData.contacto.trim()) {
+      errores.push("El campo Contacto es requerido y no puede estar vacío");
+    }
+
+    // Si hay errores, mostrarlos todos a la vez
+    if (errores.length > 0) {
+      if (errores.length === 1) {
+        toast.error(errores[0]);
+      } else {
+        toast.error(
+          <div className="space-y-1">
+            <div className="font-medium">Por favor corrige los siguientes errores:</div>
+            <ul className="list-disc list-inside space-y-1">
+              {errores.map((error, index) => (
+                <li key={index} className="text-sm">{error}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
       return;
     }
 
@@ -309,9 +354,9 @@ export function CentrosStock() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 space-y-2">
                 <Label htmlFor="nombre">Nombre *</Label>
                 <Input
                   id="nombre"
@@ -321,7 +366,7 @@ export function CentrosStock() {
                   className="bg-white/80"
                 />
               </div>
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 space-y-2">
                 <Label htmlFor="direccion">Dirección *</Label>
                 <Input
                   id="direccion"
@@ -331,7 +376,7 @@ export function CentrosStock() {
                   className="bg-white/80"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="localidad">Localidad *</Label>
                 <Input
                   id="localidad"
@@ -341,7 +386,7 @@ export function CentrosStock() {
                   className="bg-white/80"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="provincia">Provincia *</Label>
                 <Input
                   id="provincia"
@@ -351,7 +396,7 @@ export function CentrosStock() {
                   className="bg-white/80"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="codigoPostal">Código postal *</Label>
                 <Input
                   id="codigoPostal"
@@ -361,7 +406,7 @@ export function CentrosStock() {
                   className="bg-white/80"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="estado">Estado *</Label>
                 <Select
                   value={formData.estado}
@@ -381,7 +426,7 @@ export function CentrosStock() {
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="horarioRecoleccion">Horario de recolección *</Label>
               <Input
                 id="horarioRecoleccion"
@@ -392,7 +437,7 @@ export function CentrosStock() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="contacto">Contacto *</Label>
               <Input
                 id="contacto"

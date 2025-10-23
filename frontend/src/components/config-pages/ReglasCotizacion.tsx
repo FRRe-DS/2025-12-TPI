@@ -248,41 +248,54 @@ export function ReglasCotizacion() {
 
   const handleSave = () => {
     const rangoSanitizado = formData.rangoKm.trim();
+    const errores: string[] = [];
 
     // Validar que el campo Rango KM no esté vacío
     if (!rangoSanitizado) {
-      toast.error("El campo Rango KM es requerido y no puede estar vacío");
-      return;
+      errores.push("El campo Rango KM es requerido y no puede estar vacío");
     }
 
     // Validar que TODOS los campos numéricos estén completos y tengan valores mayores a 0
     if (formData.costoBaseRango <= 0) {
-      toast.error("El campo Costo Base debe ser mayor a 0");
-      return;
+      errores.push("El campo Costo Base debe ser mayor a 0");
     }
 
     if (formData.costoPorKmAdicional <= 0) {
-      toast.error("El campo Costo/Km Adicional debe ser mayor a 0");
-      return;
+      errores.push("El campo Costo/Km Adicional debe ser mayor a 0");
     }
 
     if (formData.pesoMaximoBase <= 0) {
-      toast.error("El campo Peso Máximo Base debe ser mayor a 0");
-      return;
+      errores.push("El campo Peso Máximo Base debe ser mayor a 0");
     }
 
     if (formData.costoPorKgAdicional <= 0) {
-      toast.error("El campo Costo/Kg Adicional debe ser mayor a 0");
-      return;
+      errores.push("El campo Costo/Kg Adicional debe ser mayor a 0");
     }
 
     if (formData.volumenMaximoBase <= 0) {
-      toast.error("El campo Volumen Máximo Base debe ser mayor a 0");
-      return;
+      errores.push("El campo Volumen Máximo Base debe ser mayor a 0");
     }
 
     if (formData.costoPorVolumenAdicional <= 0) {
-      toast.error("El campo Costo/Volumen Adicional debe ser mayor a 0");
+      errores.push("El campo Costo/Volumen Adicional debe ser mayor a 0");
+    }
+
+    // Si hay errores, mostrarlos todos a la vez
+    if (errores.length > 0) {
+      if (errores.length === 1) {
+        toast.error(errores[0]);
+      } else {
+        toast.error(
+          <div className="space-y-1">
+            <div className="font-medium">Por favor corrige los siguientes errores:</div>
+            <ul className="list-disc list-inside space-y-1">
+              {errores.map((error, index) => (
+                <li key={index} className="text-sm">{error}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
       return;
     }
 

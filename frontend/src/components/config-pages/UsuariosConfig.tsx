@@ -57,7 +57,8 @@ const mockUsuarios: Usuario[] = [
     nombre: "María García",
     email: "maria.garcia@logix.com",
     telefono: "+54 11 8765-4321",
-    rol: "Operador CD",
+    rol: "Operador",
+  
     estado: "activo",
     twoFA: false,
     ultimoAcceso: "2025-10-17 09:15",
@@ -75,22 +76,11 @@ const mockUsuarios: Usuario[] = [
     notas: "",
   },
   {
-    id: "4",
-    nombre: "Ana Martínez",
-    email: "ana.martinez@logix.com",
-    telefono: "+54 11 4444-5678",
-    rol: "Viewer",
-    estado: "suspendido",
-    twoFA: false,
-    ultimoAcceso: "2025-10-10 11:20",
-    notas: "Suspendido por vacaciones",
-  },
-  {
     id: "5",
     nombre: "Pedro Rodríguez",
     email: "pedro.rodriguez@logix.com",
     telefono: "+54 11 3333-9999",
-    rol: "Operador CD",
+    rol: "Operador",
     estado: "invitado",
     twoFA: false,
     ultimoAcceso: "-",
@@ -98,7 +88,7 @@ const mockUsuarios: Usuario[] = [
   },
 ];
 
-const roles = ["Admin", "Operador CD", "Transportista", "Viewer"];
+const roles = ["Admin", "Operador", "Transportista"];
 const estados = ["invitado", "activo", "suspendido"];
 
 export function UsuariosConfig() {
@@ -114,7 +104,7 @@ export function UsuariosConfig() {
     nombre: "",
     email: "",
     telefono: "",
-    rol: "Viewer",
+    rol: "Operador",
     estado: "invitado" as "invitado" | "activo" | "suspendido",
     twoFA: false,
     notas: "",
@@ -135,7 +125,7 @@ export function UsuariosConfig() {
       nombre: "",
       email: "",
       telefono: "",
-      rol: "Viewer",
+      rol: "Operador",
       estado: "invitado",
       twoFA: false,
       notas: "",
@@ -158,29 +148,67 @@ export function UsuariosConfig() {
   };
 
   const handleSave = () => {
-    if (!formData.nombre.trim() || !formData.email.trim()) {
-      toast.error("El nombre y email son requeridos");
-      return;
+    const errores: string[] = [];
+
+    // Validar Nombre completo
+    if (!formData.nombre.trim()) {
+      errores.push("El campo Nombre completo es requerido y no puede estar vacío");
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast.error("Email inválido");
-      return;
+    // Validar Email
+    if (!formData.email.trim()) {
+      errores.push("El campo Email es requerido y no puede estar vacío");
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        errores.push("El Email debe tener un formato válido (ejemplo@dominio.com)");
+      }
     }
 
+    // Validar email único
     const emailExiste = usuarios.some(
       u => u.email.toLowerCase() === formData.email.toLowerCase() && u.id !== editingUsuario?.id
     );
 
     if (emailExiste) {
-      toast.error("Ya existe un usuario con este email");
+      errores.push("Ya existe un usuario con este email");
+    }
+
+    // Validar Teléfono si está presente
+    if (formData.telefono.trim()) {
+      const telefonoNumeros = formData.telefono.replace(/\D/g, "");
+      if (telefonoNumeros.length < 7) {
+        errores.push("El Teléfono debe contener al menos 7 dígitos numéricos");
+      }
+    }
+
+    // Validar Rol
+    if (!formData.rol) {
+      errores.push("El campo Rol es requerido");
+    }
+
+    // Si hay errores, mostrarlos todos a la vez
+    if (errores.length > 0) {
+      if (errores.length === 1) {
+        toast.error(errores[0]);
+      } else {
+        toast.error(
+          <div className="space-y-1">
+            <div className="font-medium">Por favor corrige los siguientes errores:</div>
+            <ul className="list-disc list-inside space-y-1">
+              {errores.map((error, index) => (
+                <li key={index} className="text-sm">{error}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
       return;
     }
 
     if (editingUsuario) {
-      setUsuarios(usuarios.map(u => 
-        u.id === editingUsuario.id 
+      setUsuarios(usuarios.map(u =>
+        u.id === editingUsuario.id
           ? { ...u, ...formData }
           : u
       ));
@@ -264,11 +292,6 @@ export function UsuariosConfig() {
         const config = getEstadoConfig(row.original.estado);
         return <BadgeEstado estado={config.estado} label={config.label} />;
       },
-    },
-    {
-      accessorKey: "twoFA",
-      header: "2FA",
-      cell: ({ row }) => row.original.twoFA ? "✓" : "-",
     },
     {
       accessorKey: "ultimoAcceso",
@@ -376,8 +399,8 @@ export function UsuariosConfig() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
+          <div className="space-y-6">
+            <div className="space-y-2">
               <Label htmlFor="nombre">Nombre completo *</Label>
               <Input
                 id="nombre"
@@ -388,7 +411,7 @@ export function UsuariosConfig() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
@@ -400,7 +423,7 @@ export function UsuariosConfig() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="telefono">Teléfono</Label>
               <Input
                 id="telefono"
@@ -412,7 +435,7 @@ export function UsuariosConfig() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="rol">Rol *</Label>
                 <Select
                   value={formData.rol}
@@ -431,7 +454,7 @@ export function UsuariosConfig() {
                 </Select>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="estado">Estado</Label>
                 <Select
                   value={formData.estado}
@@ -451,7 +474,7 @@ export function UsuariosConfig() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-2">
               <Switch
                 id="twoFA"
                 checked={formData.twoFA}
@@ -460,7 +483,7 @@ export function UsuariosConfig() {
               <Label htmlFor="twoFA">Requerir autenticación de dos factores (2FA)</Label>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="notas">Notas</Label>
               <Textarea
                 id="notas"

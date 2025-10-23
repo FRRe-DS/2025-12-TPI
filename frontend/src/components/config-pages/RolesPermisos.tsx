@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Shield, Plus, Copy, Check, X } from "lucide-react";
+import { Shield, Plus, Trash2, Check, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Checkbox } from "../ui/checkbox";
 import { Badge } from "../ui/badge";
+import { ConfirmDialog } from "../config/ConfirmDialog";
 import { toast } from "sonner";
 
 interface Rol {
@@ -41,7 +42,7 @@ const mockRoles: Rol[] = [
   },
   {
     id: "2",
-    nombre: "Operador CD",
+    nombre: "Operador",
     permisos: {
       ordenes: ["read", "update"],
       rutas: ["read"],
@@ -65,19 +66,6 @@ const mockRoles: Rol[] = [
     },
     activo: true,
   },
-  {
-    id: "4",
-    nombre: "Viewer",
-    permisos: {
-      ordenes: ["read"],
-      rutas: ["read"],
-      inventario: ["read"],
-      cotizacion: ["read"],
-      usuarios: [],
-      config: [],
-    },
-    activo: true,
-  },
 ];
 
 export function RolesPermisos() {
@@ -85,6 +73,7 @@ export function RolesPermisos() {
   const [selectedRolId, setSelectedRolId] = useState(roles[0].id);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [nuevoRolNombre, setNuevoRolNombre] = useState("");
+  const [deleteRol, setDeleteRol] = useState<Rol | null>(null);
 
   const selectedRol = roles.find(r => r.id === selectedRolId);
 
@@ -113,8 +102,28 @@ export function RolesPermisos() {
   };
 
   const handleCrearRol = () => {
+    const errores: string[] = [];
+
     if (!nuevoRolNombre.trim()) {
-      toast.error("El nombre del rol es requerido");
+      errores.push("El nombre del rol es requerido");
+    }
+
+    // Si hay errores, mostrarlos todos a la vez
+    if (errores.length > 0) {
+      if (errores.length === 1) {
+        toast.error(errores[0]);
+      } else {
+        toast.error(
+          <div className="space-y-1">
+            <div className="font-medium">Por favor corrige los siguientes errores:</div>
+            <ul className="list-disc list-inside space-y-1">
+              {errores.map((error, index) => (
+                <li key={index} className="text-sm">{error}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
       return;
     }
 
@@ -132,19 +141,32 @@ export function RolesPermisos() {
     toast.success("Rol creado correctamente");
   };
 
-  const handleClonarRol = () => {
-    if (!selectedRol) return;
+  const handleDeleteRol = () => {
+    if (!deleteRol) return;
 
-    const clonado: Rol = {
-      id: String(Date.now()),
-      nombre: `${selectedRol.nombre} (Copia)`,
-      permisos: { ...selectedRol.permisos },
-      activo: true,
-    };
+    // No permitir eliminar si es el último rol
+    if (roles.length === 1) {
+      toast.error("No puedes eliminar el último rol del sistema");
+      setDeleteRol(null);
+      return;
+    }
 
-    setRoles([...roles, clonado]);
-    setSelectedRolId(clonado.id);
-    toast.success("Rol clonado correctamente");
+    // No permitir eliminar roles predeterminados (Admin, Operador, Transportista)
+    if (["Admin", "Operador", "Transportista"].includes(deleteRol.nombre)) {
+      toast.error("No puedes eliminar roles predeterminados del sistema");
+      setDeleteRol(null);
+      return;
+    }
+
+    setRoles(roles.filter(r => r.id !== deleteRol.id));
+
+    // Si el rol eliminado era el seleccionado, seleccionar el primero
+    if (selectedRolId === deleteRol.id) {
+      setSelectedRolId(roles[0].id);
+    }
+
+    toast.success("Rol eliminado correctamente");
+    setDeleteRol(null);
   };
 
   const tienePermiso = (recurso: string, accion: string) => {
@@ -164,22 +186,16 @@ export function RolesPermisos() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-gray-800 mb-1">Roles y Permisos</h2>
-          <p className="text-gray-600">
-            Gestiona los roles y sus permisos de acceso
-          </p>
-        </div>
+      <div className="flex items-center justify-end">
         <div className="flex gap-2">
           {selectedRol && (
             <Button
               variant="outline"
-              onClick={handleClonarRol}
-              className="border-purple-200/50"
+              onClick={() => setDeleteRol(selectedRol)}
+              className="border-red-200 text-red-600 hover:bg-red-50"
             >
-              <Copy className="w-4 h-4 mr-2" />
-              Clonar rol
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar rol
             </Button>
           )}
           <Button
@@ -298,25 +314,6 @@ export function RolesPermisos() {
                   </table>
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-purple-200">
-                  <h4 className="text-gray-800 mb-3">Resumen del rol</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {recursos.map((recurso) => {
-                      const permisos = selectedRol.permisos[recurso.id] || [];
-                      if (permisos.length === 0) return null;
-                      return (
-                        <Badge
-                          key={recurso.id}
-                          variant="outline"
-                          className="bg-purple-100 border-purple-300 text-purple-700"
-                        >
-                          {recurso.label}: {permisos.join(", ")}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                </div>
-
                 <div className="mt-6 flex justify-end">
                   <Button
                     onClick={handleGuardar}
@@ -334,6 +331,16 @@ export function RolesPermisos() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteRol}
+        onOpenChange={(open) => !open && setDeleteRol(null)}
+        title="Eliminar rol"
+        description={`¿Estás seguro de que deseas eliminar el rol "${deleteRol?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        onConfirm={handleDeleteRol}
+        variant="danger"
+      />
     </div>
   );
 }

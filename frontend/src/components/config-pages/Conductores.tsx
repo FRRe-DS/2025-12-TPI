@@ -207,56 +207,66 @@ export function Conductores() {
   };
 
   const handleSave = () => {
+    const errores: string[] = [];
+
     // Validar Nombre completo
     if (!formData.nombre.trim()) {
-      toast.error("El campo Nombre completo es requerido y no puede estar vacío");
-      return;
+      errores.push("El campo Nombre completo es requerido y no puede estar vacío");
     }
 
     // Validar Documento - solo números y mínimo 7 dígitos
     if (!formData.documento.trim()) {
-      toast.error("El campo Documento es requerido y no puede estar vacío");
-      return;
-    }
-
-    const documentoNumeros = formData.documento.replace(/\D/g, "");
-    if (documentoNumeros.length < 7) {
-      toast.error("El Documento debe contener al menos 7 dígitos numéricos");
-      return;
-    }
-
-    if (!/^\d+$/.test(documentoNumeros)) {
-      toast.error("El Documento debe contener solo números");
-      return;
+      errores.push("El campo Documento es requerido y no puede estar vacío");
+    } else {
+      const documentoNumeros = formData.documento.replace(/\D/g, "");
+      if (documentoNumeros.length < 7) {
+        errores.push("El Documento debe contener al menos 7 dígitos numéricos");
+      } else if (!/^\d+$/.test(documentoNumeros)) {
+        errores.push("El Documento debe contener solo números");
+      }
     }
 
     // Validar Telefono - solo números
     if (!formData.telefono.trim()) {
-      toast.error("El campo Telefono es requerido y no puede estar vacío");
-      return;
-    }
-
-    const telefonoNumeros = formData.telefono.replace(/\D/g, "");
-    if (telefonoNumeros.length < 7) {
-      toast.error("El Telefono debe contener al menos 7 dígitos numéricos");
-      return;
+      errores.push("El campo Telefono es requerido y no puede estar vacío");
+    } else {
+      const telefonoNumeros = formData.telefono.replace(/\D/g, "");
+      if (telefonoNumeros.length < 7) {
+        errores.push("El Telefono debe contener al menos 7 dígitos numéricos");
+      }
     }
 
     // Validar Email con formato válido
     if (!formData.email.trim()) {
-      toast.error("El campo Email es requerido y no puede estar vacío");
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast.error("El Email debe tener un formato válido (ejemplo@dominio.com)");
-      return;
+      errores.push("El campo Email es requerido y no puede estar vacío");
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        errores.push("El Email debe tener un formato válido (ejemplo@dominio.com)");
+      }
     }
 
     // Validar Licencia
     if (!formData.licencia.trim()) {
-      toast.error("El campo Licencia es requerido y no puede estar vacío");
+      errores.push("El campo Licencia es requerido y no puede estar vacío");
+    }
+
+    // Si hay errores, mostrarlos todos a la vez
+    if (errores.length > 0) {
+      if (errores.length === 1) {
+        toast.error(errores[0]);
+      } else {
+        toast.error(
+          <div className="space-y-1">
+            <div className="font-medium">Por favor corrige los siguientes errores:</div>
+            <ul className="list-disc list-inside space-y-1">
+              {errores.map((error, index) => (
+                <li key={index} className="text-sm">{error}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
       return;
     }
 

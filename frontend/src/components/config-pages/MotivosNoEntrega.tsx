@@ -149,27 +149,63 @@ export function MotivosNoEntrega() {
   };
 
   const handleSave = () => {
-    if (!formData.codigo.trim() || !formData.motivo.trim()) {
-      toast.error("El código y motivo son requeridos");
-      return;
+    const errores: string[] = [];
+
+    // Validar Código
+    if (!formData.codigo.trim()) {
+      errores.push("El campo Código es requerido y no puede estar vacío");
     }
 
+    // Validar Motivo
+    if (!formData.motivo.trim()) {
+      errores.push("El campo Motivo es requerido y no puede estar vacío");
+    }
+
+    // Validar Categoría
+    if (!formData.categoria) {
+      errores.push("El campo Categoría es requerido");
+    }
+
+    // Validar Orden - debe ser mayor a 0
+    if (formData.orden <= 0) {
+      errores.push("El campo Orden debe ser un número mayor a 0");
+    }
+
+    // Validar longitud de acción sugerida
     if (formData.accionSugerida.length > 120) {
-      toast.error("La acción sugerida no puede superar 120 caracteres");
-      return;
+      errores.push("La acción sugerida no puede superar 120 caracteres");
     }
 
+    // Validar código único
     const codigoExiste = motivos.some(
       m => m.codigo.toUpperCase() === formData.codigo.toUpperCase() && m.id !== editingMotivo?.id
     );
 
     if (codigoExiste) {
-      toast.error("Ya existe un motivo con este código");
+      errores.push("Ya existe un motivo con este código");
+    }
+
+    // Si hay errores, mostrarlos todos a la vez
+    if (errores.length > 0) {
+      if (errores.length === 1) {
+        toast.error(errores[0]);
+      } else {
+        toast.error(
+          <div className="space-y-1">
+            <div className="font-medium">Por favor corrige los siguientes errores:</div>
+            <ul className="list-disc list-inside space-y-1">
+              {errores.map((error, index) => (
+                <li key={index} className="text-sm">{error}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
       return;
     }
 
     if (editingMotivo) {
-      setMotivos(motivos.map(m => 
+      setMotivos(motivos.map(m =>
         m.id === editingMotivo.id ? { ...m, ...formData } : m
       ));
       toast.success("Motivo actualizado correctamente");
@@ -329,8 +365,8 @@ export function MotivosNoEntrega() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
+          <div className="space-y-6">
+            <div className="space-y-2">
               <Label htmlFor="codigo">Código *</Label>
               <Input
                 id="codigo"
@@ -342,7 +378,7 @@ export function MotivosNoEntrega() {
               <p className="text-xs text-gray-500 mt-1">Solo mayúsculas y guiones bajos</p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="motivo">Motivo *</Label>
               <Input
                 id="motivo"
@@ -353,7 +389,7 @@ export function MotivosNoEntrega() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="categoria">Categoría *</Label>
               <Select
                 value={formData.categoria}
@@ -372,7 +408,7 @@ export function MotivosNoEntrega() {
               </Select>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="accionSugerida">Acción sugerida</Label>
               <Textarea
                 id="accionSugerida"
@@ -389,18 +425,23 @@ export function MotivosNoEntrega() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="orden">Orden</Label>
+              <div className="space-y-2">
+                <Label htmlFor="orden">Orden *</Label>
                 <Input
                   id="orden"
-                  type="number"
-                  min="1"
-                  value={formData.orden}
-                  onChange={(e) => setFormData({ ...formData, orden: Number(e.target.value) })}
+                  type="text"
+                  value={formData.orden === 0 ? "" : formData.orden}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d+$/.test(value)) {
+                      setFormData({ ...formData, orden: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="1"
                   className="bg-white/80"
                 />
               </div>
-              <div className="flex items-end">
+              <div className="flex items-end pb-2">
                 <div className="flex items-center gap-2">
                   <Switch
                     id="activo"

@@ -175,32 +175,63 @@ export function TiposTransporte() {
   };
 
   const handleSave = () => {
-    if (!formData.codigo.trim() || !formData.nombre.trim()) {
-      toast.error("El código y nombre son requeridos");
-      return;
+    const errores: string[] = [];
+
+    // Validar Código
+    if (!formData.codigo.trim()) {
+      errores.push("El campo Código es requerido y no puede estar vacío");
     }
 
-    if (formData.capacidadKg < 0 || formData.capacidadM3 < 0) {
-      toast.error("Las capacidades deben ser mayores o iguales a 0");
-      return;
+    // Validar Nombre
+    if (!formData.nombre.trim()) {
+      errores.push("El campo Nombre es requerido y no puede estar vacío");
     }
 
-    if (!formData.rangoSoportado.trim()) {
-      toast.error("Define un rango soportado");
-      return;
+    // Validar Capacidad kg - debe ser mayor a 0
+    if (formData.capacidadKg <= 0) {
+      errores.push("El campo Capacidad típica (kg) debe ser mayor a 0");
     }
 
+    // Validar Capacidad m³ - debe ser mayor a 0
+    if (formData.capacidadM3 <= 0) {
+      errores.push("El campo Capacidad típica (m³) debe ser mayor a 0");
+    }
+
+    // Validar Multiplicador costo - debe ser mayor a 0
     if (formData.multiplicadorCosto <= 0) {
-      toast.error("El multiplicador debe ser mayor a 0");
-      return;
+      errores.push("El campo Multiplicador costo debe ser mayor a 0");
     }
 
+    // Validar Rango soportado
+    if (!formData.rangoSoportado.trim()) {
+      errores.push("El campo Rango soportado es requerido");
+    }
+
+    // Validar código único
     const codigoExiste = tipos.some(
       (t) => t.codigo.toLowerCase() === formData.codigo.toLowerCase() && t.id !== editingTipo?.id
     );
 
     if (codigoExiste) {
-      toast.error("Ya existe un tipo de transporte con este código");
+      errores.push("Ya existe un tipo de transporte con este código");
+    }
+
+    // Si hay errores, mostrarlos todos a la vez
+    if (errores.length > 0) {
+      if (errores.length === 1) {
+        toast.error(errores[0]);
+      } else {
+        toast.error(
+          <div className="space-y-1">
+            <div className="font-medium">Por favor corrige los siguientes errores:</div>
+            <ul className="list-disc list-inside space-y-1">
+              {errores.map((error, index) => (
+                <li key={index} className="text-sm">{error}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
       return;
     }
 
@@ -377,10 +408,10 @@ export function TiposTransporte() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="codigo">CÃ³digo *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="codigo">Código *</Label>
                 <Input
                   id="codigo"
                   value={formData.codigo}
@@ -389,7 +420,7 @@ export function TiposTransporte() {
                   className="bg-white/80"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="nombre">Nombre *</Label>
                 <Input
                   id="nombre"
@@ -401,7 +432,7 @@ export function TiposTransporte() {
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="icono">Icono</Label>
               <Select
                 value={formData.icono}
@@ -427,44 +458,57 @@ export function TiposTransporte() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="capacidadKg">Capacidad tÃ­pica (kg)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="capacidadKg" className="block h-10 flex items-center">Capacidad típica (kg) *</Label>
                 <Input
                   id="capacidadKg"
-                  type="number"
-                  min="0"
-                  value={formData.capacidadKg}
-                  onChange={(e) => setFormData({ ...formData, capacidadKg: Number(e.target.value) })}
+                  type="text"
+                  value={formData.capacidadKg === 0 ? "" : formData.capacidadKg}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, capacidadKg: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="0"
                   className="bg-white/80"
                 />
               </div>
-              <div>
-                <Label htmlFor="capacidadM3">Capacidad tÃ­pica (mÂ³)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="capacidadM3" className="block h-10 flex items-center">Capacidad típica (m³) *</Label>
                 <Input
                   id="capacidadM3"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={formData.capacidadM3}
-                  onChange={(e) => setFormData({ ...formData, capacidadM3: Number(e.target.value) })}
+                  type="text"
+                  value={formData.capacidadM3 === 0 ? "" : formData.capacidadM3}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, capacidadM3: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="0"
                   className="bg-white/80"
                 />
               </div>
-              <div>
-                <Label htmlFor="multiplicadorCosto">Multiplicador costo *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="multiplicadorCosto" className="block h-10 flex items-center">Multiplicador costo *</Label>
                 <Input
                   id="multiplicadorCosto"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={formData.multiplicadorCosto}
-                  onChange={(e) => setFormData({ ...formData, multiplicadorCosto: Number(e.target.value) })}
+                  type="text"
+                  value={formData.multiplicadorCosto === 0 ? "" : formData.multiplicadorCosto}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, multiplicadorCosto: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="1"
                   className="bg-white/80"
                 />
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="rangoSoportado">Rango soportado *</Label>
               <Select
                 value={formData.rangoSoportado}
@@ -483,7 +527,7 @@ export function TiposTransporte() {
               </Select>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pt-2">
               <div className="flex items-center gap-2">
                 <Switch
                   id="requiereFrio"
@@ -492,7 +536,7 @@ export function TiposTransporte() {
                 />
                 <Label htmlFor="requiereFrio" className="flex items-center gap-2">
                   <Snowflake className="w-4 h-4 text-blue-500" />
-                  Requiere refrigeraciÃ³n
+                  Requiere refrigeración
                 </Label>
               </div>
 

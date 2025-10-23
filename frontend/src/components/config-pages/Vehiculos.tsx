@@ -123,28 +123,26 @@ export function Vehiculos() {
   };
 
   const handleSave = () => {
+    const errores: string[] = [];
+
     // Validar que la patente no esté vacía
     if (!formData.patente.trim()) {
-      toast.error("El campo Patente es requerido y no puede estar vacío");
-      return;
+      errores.push("El campo Patente es requerido y no puede estar vacío");
     }
 
     // Validar que el tipo de vehículo esté seleccionado
     if (!formData.tipo) {
-      toast.error("El campo Tipo de vehículo es requerido");
-      return;
+      errores.push("El campo Tipo de vehículo es requerido");
     }
 
     // Validar que la capacidad en kg sea mayor a 0
     if (formData.capacidadKg <= 0) {
-      toast.error("El campo Capacidad (kg) debe ser mayor a 0");
-      return;
+      errores.push("El campo Capacidad (kg) debe ser mayor a 0");
     }
 
     // Validar que la capacidad en m³ sea mayor a 0
     if (formData.capacidadM3 <= 0) {
-      toast.error("El campo Capacidad (m³) debe ser mayor a 0");
-      return;
+      errores.push("El campo Capacidad (m³) debe ser mayor a 0");
     }
 
     // Verificar patente única
@@ -153,7 +151,25 @@ export function Vehiculos() {
     );
 
     if (patenteExiste) {
-      toast.error("Ya existe un vehículo con esta patente");
+      errores.push("Ya existe un vehículo con esta patente");
+    }
+
+    // Si hay errores, mostrarlos todos a la vez
+    if (errores.length > 0) {
+      if (errores.length === 1) {
+        toast.error(errores[0]);
+      } else {
+        toast.error(
+          <div className="space-y-1">
+            <div className="font-medium">Por favor corrige los siguientes errores:</div>
+            <ul className="list-disc list-inside space-y-1">
+              {errores.map((error, index) => (
+                <li key={index} className="text-sm">{error}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
       return;
     }
 
