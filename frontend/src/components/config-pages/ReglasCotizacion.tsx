@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Edit, Calculator, DollarSign } from "lucide-react";
+import { MoreHorizontal, Edit, Calculator, DollarSign, Trash2 } from "lucide-react";
 import { DataTable, createSortableHeader } from "../config/DataTable";
 import { Toolbar } from "../config/Toolbar";
 import { EmptyState } from "../config/EmptyState";
@@ -241,25 +241,48 @@ export function ReglasCotizacion() {
     setIsModalOpen(true);
   };
 
+  const handleDelete = (id: string) => {
+    setReglas(reglas.filter(regla => regla.id !== id));
+    toast.success("Regla eliminada correctamente");
+  };
+
   const handleSave = () => {
     const rangoSanitizado = formData.rangoKm.trim();
 
+    // Validar que el campo Rango KM no esté vacío
     if (!rangoSanitizado) {
-      toast.error("El campo Rango_KM es requerido");
+      toast.error("El campo Rango KM es requerido y no puede estar vacío");
       return;
     }
 
-    const numericValues = [
-      formData.costoBaseRango,
-      formData.costoPorKmAdicional,
-      formData.pesoMaximoBase,
-      formData.costoPorKgAdicional,
-      formData.volumenMaximoBase,
-      formData.costoPorVolumenAdicional,
-    ];
+    // Validar que TODOS los campos numéricos estén completos y tengan valores mayores a 0
+    if (formData.costoBaseRango <= 0) {
+      toast.error("El campo Costo Base debe ser mayor a 0");
+      return;
+    }
 
-    if (numericValues.some(value => Number.isNaN(value) || value < 0)) {
-      toast.error("Los valores deben ser mayores o iguales a 0");
+    if (formData.costoPorKmAdicional <= 0) {
+      toast.error("El campo Costo/Km Adicional debe ser mayor a 0");
+      return;
+    }
+
+    if (formData.pesoMaximoBase <= 0) {
+      toast.error("El campo Peso Máximo Base debe ser mayor a 0");
+      return;
+    }
+
+    if (formData.costoPorKgAdicional <= 0) {
+      toast.error("El campo Costo/Kg Adicional debe ser mayor a 0");
+      return;
+    }
+
+    if (formData.volumenMaximoBase <= 0) {
+      toast.error("El campo Volumen Máximo Base debe ser mayor a 0");
+      return;
+    }
+
+    if (formData.costoPorVolumenAdicional <= 0) {
+      toast.error("El campo Costo/Volumen Adicional debe ser mayor a 0");
       return;
     }
 
@@ -358,6 +381,13 @@ export function ReglasCotizacion() {
               <Calculator className="mr-2 h-4 w-4" />
               Simular
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleDelete(row.original.id)}
+              className="text-red-600 focus:text-red-600"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Eliminar
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -387,7 +417,7 @@ export function ReglasCotizacion() {
       )}
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="backdrop-blur-xl bg-white/95 max-w-2xl">
+        <DialogContent className="backdrop-blur-xl bg-white/95 max-w-3xl">
           <DialogHeader>
             <DialogTitle>
               {editingRegla ? "Editar regla de cotizacion" : "Nueva regla de cotizacion"}
@@ -397,9 +427,9 @@ export function ReglasCotizacion() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="rangoKm">Rango_KM *</Label>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="rangoKm" className="block h-10 flex items-center">Rango KM *</Label>
               <Input
                 id="rangoKm"
                 value={formData.rangoKm}
@@ -409,76 +439,103 @@ export function ReglasCotizacion() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="costoBaseRango">Costo_Base_Rango (ARS)</Label>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="costoBaseRango" className="block h-10 flex items-center">Costo Base (ARS) *</Label>
                 <Input
                   id="costoBaseRango"
-                  type="number"
-                  min="0"
-                  value={formData.costoBaseRango}
-                  onChange={(e) => setFormData({ ...formData, costoBaseRango: Number(e.target.value) })}
+                  type="text"
+                  value={formData.costoBaseRango === 0 ? "" : formData.costoBaseRango}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, costoBaseRango: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="0"
                   className="bg-white/80"
                 />
               </div>
-              <div>
-                <Label htmlFor="costoPorKmAdicional">Costo_Por_Km_Adicional (ARS)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="costoPorKmAdicional" className="block h-10 flex items-center">Costo/Km Adic. (ARS) *</Label>
                 <Input
                   id="costoPorKmAdicional"
-                  type="number"
-                  min="0"
-                  value={formData.costoPorKmAdicional}
-                  onChange={(e) => setFormData({ ...formData, costoPorKmAdicional: Number(e.target.value) })}
+                  type="text"
+                  value={formData.costoPorKmAdicional === 0 ? "" : formData.costoPorKmAdicional}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, costoPorKmAdicional: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="0"
                   className="bg-white/80"
                 />
               </div>
-              <div>
-                <Label htmlFor="pesoMaximoBase">Peso_Maximo_Base (kg)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="pesoMaximoBase" className="block h-10 flex items-center">Peso Max. Base (kg) *</Label>
                 <Input
                   id="pesoMaximoBase"
-                  type="number"
-                  min="0"
-                  value={formData.pesoMaximoBase}
-                  onChange={(e) => setFormData({ ...formData, pesoMaximoBase: Number(e.target.value) })}
+                  type="text"
+                  value={formData.pesoMaximoBase === 0 ? "" : formData.pesoMaximoBase}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, pesoMaximoBase: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="0"
                   className="bg-white/80"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="costoPorKgAdicional">Costo_Por_Kg_Adicional (ARS)</Label>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="costoPorKgAdicional" className="block h-10 flex items-center">Costo/Kg Adic. (ARS) *</Label>
                 <Input
                   id="costoPorKgAdicional"
-                  type="number"
-                  min="0"
-                  value={formData.costoPorKgAdicional}
-                  onChange={(e) => setFormData({ ...formData, costoPorKgAdicional: Number(e.target.value) })}
+                  type="text"
+                  value={formData.costoPorKgAdicional === 0 ? "" : formData.costoPorKgAdicional}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, costoPorKgAdicional: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="0"
                   className="bg-white/80"
                 />
               </div>
-              <div>
-                <Label htmlFor="volumenMaximoBase">Volumen_Maximo_Base (cm^3)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="volumenMaximoBase" className="block h-10 flex items-center">Vol. Max. Base (cm³) *</Label>
                 <Input
                   id="volumenMaximoBase"
-                  type="number"
-                  min="0"
-                  value={formData.volumenMaximoBase}
-                  onChange={(e) => setFormData({ ...formData, volumenMaximoBase: Number(e.target.value) })}
+                  type="text"
+                  value={formData.volumenMaximoBase === 0 ? "" : formData.volumenMaximoBase}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, volumenMaximoBase: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="0"
                   className="bg-white/80"
                 />
               </div>
-              <div>
-                <Label htmlFor="costoPorVolumenAdicional">Costo_Por_Volumen_Adicional (ARS/cm^3)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="costoPorVolumenAdicional" className="block h-10 flex items-center">Costo/Vol. Adic. (ARS/cm³) *</Label>
                 <Input
                   id="costoPorVolumenAdicional"
-                  type="number"
-                  min="0"
-                  step="0.001"
-                  value={formData.costoPorVolumenAdicional}
-                  onChange={(e) =>
-                    setFormData({ ...formData, costoPorVolumenAdicional: Number(e.target.value) })
-                  }
+                  type="text"
+                  value={formData.costoPorVolumenAdicional === 0 ? "" : formData.costoPorVolumenAdicional}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, costoPorVolumenAdicional: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="0"
                   className="bg-white/80"
                 />
               </div>

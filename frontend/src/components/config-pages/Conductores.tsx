@@ -207,23 +207,56 @@ export function Conductores() {
   };
 
   const handleSave = () => {
+    // Validar Nombre completo
     if (!formData.nombre.trim()) {
-      toast.error("El nombre es obligatorio");
+      toast.error("El campo Nombre completo es requerido y no puede estar vacío");
       return;
     }
 
+    // Validar Documento - solo números y mínimo 7 dígitos
     if (!formData.documento.trim()) {
-      toast.error("El documento es obligatorio");
+      toast.error("El campo Documento es requerido y no puede estar vacío");
       return;
     }
 
+    const documentoNumeros = formData.documento.replace(/\D/g, "");
+    if (documentoNumeros.length < 7) {
+      toast.error("El Documento debe contener al menos 7 dígitos numéricos");
+      return;
+    }
+
+    if (!/^\d+$/.test(documentoNumeros)) {
+      toast.error("El Documento debe contener solo números");
+      return;
+    }
+
+    // Validar Telefono - solo números
     if (!formData.telefono.trim()) {
-      toast.error("El telefono es obligatorio");
+      toast.error("El campo Telefono es requerido y no puede estar vacío");
       return;
     }
 
-    if (!formData.email.trim() || !formData.email.includes("@")) {
-      toast.error("El email no es valido");
+    const telefonoNumeros = formData.telefono.replace(/\D/g, "");
+    if (telefonoNumeros.length < 7) {
+      toast.error("El Telefono debe contener al menos 7 dígitos numéricos");
+      return;
+    }
+
+    // Validar Email con formato válido
+    if (!formData.email.trim()) {
+      toast.error("El campo Email es requerido y no puede estar vacío");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("El Email debe tener un formato válido (ejemplo@dominio.com)");
+      return;
+    }
+
+    // Validar Licencia
+    if (!formData.licencia.trim()) {
+      toast.error("El campo Licencia es requerido y no puede estar vacío");
       return;
     }
 
@@ -330,12 +363,12 @@ export function Conductores() {
     {
       accessorKey: "activo",
       header: "Habilitado",
-      cell: ({ row }) =>
-        row.original.activo ? (
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-        ) : (
-          "-"
-        ),
+      cell: ({ row }) => (
+        <BadgeEstado
+          estado={row.original.activo ? "success" : "neutral"}
+          label={row.original.activo ? "Habilitado" : "No habilitado"}
+        />
+      ),
     },
     {
       id: "actions",
@@ -408,9 +441,9 @@ export function Conductores() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="nombre">Nombre completo *</Label>
                 <Input
                   id="nombre"
@@ -420,7 +453,7 @@ export function Conductores() {
                   className="bg-white/80"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="documento">Documento *</Label>
                 <Input
                   id="documento"
@@ -430,7 +463,7 @@ export function Conductores() {
                   className="bg-white/80"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="telefono">Telefono *</Label>
                 <Input
                   id="telefono"
@@ -440,7 +473,7 @@ export function Conductores() {
                   className="bg-white/80"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
@@ -454,7 +487,7 @@ export function Conductores() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="licencia">Licencia *</Label>
                 <Input
                   id="licencia"
@@ -464,7 +497,7 @@ export function Conductores() {
                   className="bg-white/80"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="habilitacion">Habilitacion</Label>
                 <Input
                   id="habilitacion"
@@ -477,7 +510,7 @@ export function Conductores() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="tipoVehiculo">Tipo de vehiculo habitual</Label>
                 <Input
                   id="tipoVehiculo"
@@ -487,7 +520,7 @@ export function Conductores() {
                   className="bg-white/80"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="turno">Turno</Label>
                 <Select
                   value={formData.turno}
@@ -505,7 +538,7 @@ export function Conductores() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="base">Base logistica</Label>
                 <Select
                   value={formData.base}
@@ -526,7 +559,7 @@ export function Conductores() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="estado">Estado operativo</Label>
                 <Select
                   value={formData.estado}
@@ -542,7 +575,7 @@ export function Conductores() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-3 pt-6 md:pt-0">
+              <div className="flex items-center gap-3 pt-8">
                 <Switch
                   id="activo"
                   checked={formData.activo}

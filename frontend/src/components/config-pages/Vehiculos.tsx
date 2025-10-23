@@ -123,13 +123,27 @@ export function Vehiculos() {
   };
 
   const handleSave = () => {
+    // Validar que la patente no esté vacía
     if (!formData.patente.trim()) {
-      toast.error("La patente es requerida");
+      toast.error("El campo Patente es requerido y no puede estar vacío");
       return;
     }
 
-    if (formData.capacidadKg < 0 || formData.capacidadM3 < 0) {
-      toast.error("Las capacidades deben ser mayores o iguales a 0");
+    // Validar que el tipo de vehículo esté seleccionado
+    if (!formData.tipo) {
+      toast.error("El campo Tipo de vehículo es requerido");
+      return;
+    }
+
+    // Validar que la capacidad en kg sea mayor a 0
+    if (formData.capacidadKg <= 0) {
+      toast.error("El campo Capacidad (kg) debe ser mayor a 0");
+      return;
+    }
+
+    // Validar que la capacidad en m³ sea mayor a 0
+    if (formData.capacidadM3 <= 0) {
+      toast.error("El campo Capacidad (m³) debe ser mayor a 0");
       return;
     }
 
@@ -144,7 +158,7 @@ export function Vehiculos() {
     }
 
     if (editingVehiculo) {
-      setVehiculos(vehiculos.map(v => 
+      setVehiculos(vehiculos.map(v =>
         v.id === editingVehiculo.id ? { ...v, ...formData } : v
       ));
       toast.success("Vehículo actualizado correctamente");
@@ -299,8 +313,8 @@ export function Vehiculos() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
+          <div className="space-y-6">
+            <div className="space-y-2">
               <Label htmlFor="patente">Patente *</Label>
               <Input
                 id="patente"
@@ -311,7 +325,7 @@ export function Vehiculos() {
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="tipo">Tipo de vehículo *</Label>
               <Select
                 value={formData.tipo}
@@ -337,32 +351,41 @@ export function Vehiculos() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="capacidadKg">Capacidad (kg)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="capacidadKg">Capacidad (kg) *</Label>
                 <Input
                   id="capacidadKg"
-                  type="number"
-                  min="0"
-                  value={formData.capacidadKg}
-                  onChange={(e) => setFormData({ ...formData, capacidadKg: Number(e.target.value) })}
+                  type="text"
+                  value={formData.capacidadKg === 0 ? "" : formData.capacidadKg}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, capacidadKg: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="0"
                   className="bg-white/80"
                 />
               </div>
-              <div>
-                <Label htmlFor="capacidadM3">Capacidad (m³)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="capacidadM3">Capacidad (m³) *</Label>
                 <Input
                   id="capacidadM3"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={formData.capacidadM3}
-                  onChange={(e) => setFormData({ ...formData, capacidadM3: Number(e.target.value) })}
+                  type="text"
+                  value={formData.capacidadM3 === 0 ? "" : formData.capacidadM3}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setFormData({ ...formData, capacidadM3: value === "" ? 0 : Number(value) });
+                    }
+                  }}
+                  placeholder="0"
                   className="bg-white/80"
                 />
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="restricciones">Restricciones</Label>
               <Input
                 id="restricciones"
@@ -373,7 +396,7 @@ export function Vehiculos() {
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-2">
               <Switch
                 id="activo"
                 checked={formData.activo}
