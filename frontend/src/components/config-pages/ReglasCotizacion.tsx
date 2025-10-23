@@ -429,7 +429,7 @@ export function ReglasCotizacion() {
 
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="rangoKm" className="block h-10 flex items-center">Rango KM *</Label>
+              <Label htmlFor="rangoKm" className="block h-10 flex items-center">Rango KM</Label>
               <Input
                 id="rangoKm"
                 value={formData.rangoKm}
@@ -441,7 +441,7 @@ export function ReglasCotizacion() {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="costoBaseRango" className="block h-10 flex items-center">Costo Base (ARS) *</Label>
+                <Label htmlFor="costoBaseRango" className="block h-10 flex items-center">Costo Base (ARS)</Label>
                 <Input
                   id="costoBaseRango"
                   type="text"
@@ -457,7 +457,7 @@ export function ReglasCotizacion() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="costoPorKmAdicional" className="block h-10 flex items-center">Costo/Km Adic. (ARS) *</Label>
+                <Label htmlFor="costoPorKmAdicional" className="block h-10 flex items-center">Costo/Km Adic. (ARS)</Label>
                 <Input
                   id="costoPorKmAdicional"
                   type="text"
@@ -473,7 +473,7 @@ export function ReglasCotizacion() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="pesoMaximoBase" className="block h-10 flex items-center">Peso Max. Base (kg) *</Label>
+                <Label htmlFor="pesoMaximoBase" className="block h-10 flex items-center">Peso Max. Base (kg)</Label>
                 <Input
                   id="pesoMaximoBase"
                   type="text"
@@ -492,7 +492,7 @@ export function ReglasCotizacion() {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="costoPorKgAdicional" className="block h-10 flex items-center">Costo/Kg Adic. (ARS) *</Label>
+                <Label htmlFor="costoPorKgAdicional" className="block h-10 flex items-center">Costo/Kg Adic. (ARS)</Label>
                 <Input
                   id="costoPorKgAdicional"
                   type="text"
@@ -508,7 +508,7 @@ export function ReglasCotizacion() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="volumenMaximoBase" className="block h-10 flex items-center">Vol. Max. Base (cm³) *</Label>
+                <Label htmlFor="volumenMaximoBase" className="block h-10 flex items-center">Vol. Max. Base (cm³)</Label>
                 <Input
                   id="volumenMaximoBase"
                   type="text"
@@ -524,7 +524,7 @@ export function ReglasCotizacion() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="costoPorVolumenAdicional" className="block h-10 flex items-center">Costo/Vol. Adic. (ARS/cm³) *</Label>
+                <Label htmlFor="costoPorVolumenAdicional" className="block h-10 flex items-center">Costo/Vol. Adic. (ARS/cm³)</Label>
                 <Input
                   id="costoPorVolumenAdicional"
                   type="text"

@@ -63,6 +63,89 @@ interface DashboardData {
   tiemposEntrega: RangoTiempo[];
 }
 
+// Datos mock para modo frontend
+const mockPedidos = [
+  {
+    id: 1,
+    numeroPedido: 'PED-2024-001',
+    cliente: 'Empresa ABC',
+    destino: 'Buenos Aires',
+    estado: 'entregado',
+    fechaCreacion: new Date('2024-01-15'),
+    fechaEntrega: new Date('2024-01-16'),
+    prioridad: 'alta' as const,
+    valor: 250000
+  },
+  {
+    id: 2,
+    numeroPedido: 'PED-2024-002',
+    cliente: 'Tienda XYZ',
+    destino: 'Córdoba',
+    estado: 'entregado',
+    fechaCreacion: new Date('2024-01-14'),
+    fechaEntrega: new Date('2024-01-15'),
+    prioridad: 'media' as const,
+    valor: 180000
+  },
+  {
+    id: 3,
+    numeroPedido: 'PED-2024-003',
+    cliente: 'Supermercado Central',
+    destino: 'Rosario',
+    estado: 'en_transito',
+    fechaCreacion: new Date('2024-01-13'),
+    prioridad: 'alta' as const,
+    valor: 320000
+  },
+  {
+    id: 4,
+    numeroPedido: 'PED-2024-004',
+    cliente: 'Farmacia Salud',
+    destino: 'Mendoza',
+    estado: 'entregado',
+    fechaCreacion: new Date('2024-01-12'),
+    fechaEntrega: new Date('2024-01-13'),
+    prioridad: 'baja' as const,
+    valor: 95000
+  }
+];
+
+// Datos mock para vehículos activos
+const mockVehiculosActivos = [
+  {
+    id: 1,
+    nombre: "Camión Refrigerado #001",
+    estado: "en_ruta",
+    progreso: "7/10 entregas",
+    proximaParada: "Av. Corrientes 1234, Buenos Aires",
+    conductor: "Carlos Perdomo",
+  },
+  {
+    id: 2,
+    nombre: "Van Express #002",
+    estado: "retrasado",
+    progreso: "3/8 entregas",
+    proximaParada: "San Martín 567, Córdoba",
+    conductor: "Luciana Barrios",
+  },
+  {
+    id: 3,
+    nombre: "Moto Delivery #003",
+    estado: "en_ruta",
+    progreso: "5/6 entregas",
+    proximaParada: "Belgrano 890, Rosario",
+    conductor: "María González",
+  },
+  {
+    id: 4,
+    nombre: "Camión Grande #004",
+    estado: "en_ruta",
+    progreso: "2/12 entregas",
+    proximaParada: "Las Heras 234, Mendoza",
+    conductor: "Federico Díaz",
+  }
+];
+
 export function Dashboard() {
   const [stats, setStats] = useState({
     totalPedidos: 0,
@@ -114,51 +197,6 @@ export function Dashboard() {
       setError(null);
 
       // Datos mock para modo frontend
-      const mockPedidos = [
-        {
-          id: 1,
-          numeroPedido: 'PED-2024-001',
-          cliente: 'Empresa ABC',
-          destino: 'Centro de Bogotá',
-          estado: 'entregado',
-          fechaCreacion: new Date('2024-01-15'),
-          fechaEntrega: new Date('2024-01-16'),
-          prioridad: 'alta' as const,
-          valor: 250000
-        },
-        {
-          id: 2,
-          numeroPedido: 'PED-2024-002',
-          cliente: 'Tienda XYZ',
-          destino: 'Norte de Medellín',
-          estado: 'entregado',
-          fechaCreacion: new Date('2024-01-14'),
-          fechaEntrega: new Date('2024-01-15'),
-          prioridad: 'media' as const,
-          valor: 180000
-        },
-        {
-          id: 3,
-          numeroPedido: 'PED-2024-003',
-          cliente: 'Supermercado Central',
-          destino: 'Sur de Cali',
-          estado: 'en_transito',
-          fechaCreacion: new Date('2024-01-13'),
-          prioridad: 'alta' as const,
-          valor: 320000
-        },
-        {
-          id: 4,
-          numeroPedido: 'PED-2024-004',
-          cliente: 'Farmacia Salud',
-          destino: 'Oeste de Barranquilla',
-          estado: 'entregado',
-          fechaCreacion: new Date('2024-01-12'),
-          fechaEntrega: new Date('2024-01-13'),
-          prioridad: 'baja' as const,
-          valor: 95000
-        }
-      ];
 
       setPedidosRecientes(mockPedidos.slice(0, 4));
 
@@ -199,10 +237,10 @@ export function Dashboard() {
 
       // Distribución por zonas
       const zonasData = [
-        { zona: 'Bogotá', entregas: 35, color: '#8B5CF6' },
-        { zona: 'Medellín', entregas: 28, color: '#14B8A6' },
-        { zona: 'Cali', entregas: 20, color: '#3B82F6' },
-        { zona: 'Barranquilla', entregas: 17, color: '#F59E0B' }
+        { zona: 'Buenos Aires', entregas: 35, color: '#8B5CF6' },
+        { zona: 'Córdoba', entregas: 28, color: '#14B8A6' },
+        { zona: 'Santa Fe', entregas: 20, color: '#3B82F6' },
+        { zona: 'Mendoza', entregas: 17, color: '#F59E0B' }
       ];
 
       // Distribución de tiempos de entrega
@@ -392,8 +430,8 @@ export function Dashboard() {
           <p className={`text-sm mb-3 ${modeInfo.mode === 'backend' ? 'text-green-700' : 'text-blue-700'
             }`}>
             {modeInfo.mode === 'backend'
-              ? 'Sistema completo de gestión logística con optimización de rutas y seguimiento en tiempo real.'
-              : 'Estás experimentando la interfaz completa de PEPACK con datos realistas. Todas las funcionalidades están disponibles para pruebas.'
+              ? 'Sistema completo de gestión logística con optimización de rutas y seguimiento en tiempo real para Argentina.'
+              : 'Estás experimentando la interfaz completa de PEPACK con datos realistas de Argentina. Todas las funcionalidades están disponibles para pruebas.'
             }
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -450,9 +488,9 @@ export function Dashboard() {
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>
           <h1 className="text-3xl bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
-            PEPACK - Gestión Logística
+            PEPACK - Gestión Logística Argentina
           </h1>
-          <p className="text-gray-600 mt-1">Sistema inteligente de gestión logística y seguimiento de entregas.</p>
+          <p className="text-gray-600 mt-1">Sistema inteligente de gestión logística y seguimiento de entregas para Argentina.</p>
         </div>
         <div className="flex items-center gap-4">
           <BackendStatusIndicator />
@@ -477,7 +515,7 @@ export function Dashboard() {
 
       {/* Real-time Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105" style={glassStyle}>
+        <div className="rounded-2xl p-6 shadow-xl" style={glassStyle}>
           <div className="flex items-center justify-between">
             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
               <Package className="w-6 h-6 text-white" />
@@ -489,11 +527,11 @@ export function Dashboard() {
           </div>
           <div className="mt-4">
             <h3 className="text-2xl text-gray-800">{stats.totalPedidos.toLocaleString()}</h3>
-            <p className="text-sm text-gray-600 mt-1">Total Pedidos</p>
+            <p className="text-sm text-gray-600 mt-1">Pedidos Pendientes</p>
           </div>
         </div>
 
-        <div className="rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105" style={glassStyle}>
+        <div className="rounded-2xl p-6 shadow-xl" style={glassStyle}>
           <div className="flex items-center justify-between">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
               <CheckCircle className="w-6 h-6 text-white" />
@@ -509,7 +547,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        <div className="rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105" style={glassStyle}>
+        <div className="rounded-2xl p-6 shadow-xl" style={glassStyle}>
           <div className="flex items-center justify-between">
             <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-green-500 rounded-xl flex items-center justify-center shadow-lg">
               <Timer className="w-6 h-6 text-white" />
@@ -520,12 +558,12 @@ export function Dashboard() {
             </div>
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl text-gray-800">{stats.tiempoPromedioEntrega} días</h3>
-            <p className="text-sm text-gray-600 mt-1">Tiempo Promedio Entrega</p>
+            <h3 className="text-2xl text-gray-800">{stats.tiempoPromedioEntrega}</h3>
+            <p className="text-sm text-gray-600 mt-1">Pedidos Retrasados</p>
           </div>
         </div>
 
-        <div className="rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105" style={glassStyle}>
+        <div className="rounded-2xl p-6 shadow-xl" style={glassStyle}>
           <div className="flex items-center justify-between">
             <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg">
               <Route className="w-6 h-6 text-white" />
@@ -613,38 +651,76 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Pedidos en Proceso & Pedidos Recientes */}
+      {/* Vehículos Activos & Pedidos Recientes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pedidos en Proceso */}
+        {/* Vehículos Activos */}
         <div className="rounded-2xl p-6 shadow-xl" style={glassStyle}>
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg text-gray-800">Pedidos en Proceso</h3>
-            <span className="text-sm text-gray-600">{dashboardData.pedidosEnProceso.length} activos</span>
+            <h3 className="text-lg text-gray-800">Vehículos Activos</h3>
+            <span className="text-sm text-gray-600">{mockVehiculosActivos.length} activos</span>
           </div>
-          {dashboardData.pedidosEnProceso.length > 0 ? (
+          {mockVehiculosActivos.length > 0 ? (
             <div className="space-y-4">
-              {dashboardData.pedidosEnProceso.slice(0, 4).map((pedido, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm text-gray-700 truncate max-w-48">{pedido.numeroPedido}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 h-2 bg-gray-200 rounded-full">
-                      <div
-                        className="h-2 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-full transition-all duration-300"
-                        style={{ width: `${pedido.progreso}%` }}
-                      ></div>
+              {mockVehiculosActivos.map((vehiculo, index) => {
+                const getEstadoColor = (estado: string) => {
+                  switch (estado) {
+                    case 'en_ruta': return 'bg-blue-100 text-blue-700';
+                    case 'retrasado': return 'bg-red-100 text-red-700';
+                    case 'disponible': return 'bg-green-100 text-green-700';
+                    default: return 'bg-gray-100 text-gray-700';
+                  }
+                };
+
+                const getEstadoIcon = (estado: string) => {
+                  switch (estado) {
+                    case 'en_ruta': return '🚛';
+                    case 'retrasado': return '⚠️';
+                    case 'disponible': return '✅';
+                    default: return '🚗';
+                  }
+                };
+
+                return (
+                  <div key={index} className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-400 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Truck className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-gray-800 font-medium truncate">{vehiculo.nombre}</h4>
+                        <p className="text-sm text-gray-600 truncate">
+                          {vehiculo.conductor} - {vehiculo.progreso}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          Próxima: {vehiculo.proximaParada}
+                        </p>
+                      </div>
                     </div>
-                    <span className="text-xs text-gray-600">{Math.round(pedido.progreso)}%</span>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center">
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getEstadoColor(vehiculo.estado)}`}>
+                          <span className="text-sm">{getEstadoIcon(vehiculo.estado)}</span>
+                          {vehiculo.estado === 'en_ruta' ? 'En Ruta' :
+                            vehiculo.estado === 'retrasado' ? 'Retrasado' : vehiculo.estado}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                          <Eye className="w-4 h-4 text-gray-600" />
+                        </button>
+                        <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                          <MapPin className="w-4 h-4 text-gray-600" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <p>No hay pedidos en proceso</p>
+              <Truck className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>No hay vehículos activos</p>
             </div>
           )}
         </div>
