@@ -139,9 +139,9 @@ const mockVehiculosActivos = [
   {
     id: 4,
     nombre: "Camión Grande #004",
-    estado: "en_ruta",
-    progreso: "2/12 entregas",
-    proximaParada: "Las Heras 234, Mendoza",
+    estado: "disponible",
+    progreso: "0/12 entregas",
+    proximaParada: "Base Central, Buenos Aires",
     conductor: "Federico Díaz",
   }
 ];
@@ -367,6 +367,16 @@ export function Dashboard() {
       case 'pendiente': return 'bg-yellow-100 text-yellow-700';
       case 'cancelado': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const getEstadoIcon = (estado: string) => {
+    switch (estado) {
+      case 'entregado': return '✅';
+      case 'en_transito': return '📦';
+      case 'pendiente': return '⏳';
+      case 'cancelado': return '❌';
+      default: return '📋';
     }
   };
 
@@ -666,7 +676,7 @@ export function Dashboard() {
                   switch (estado) {
                     case 'en_ruta': return 'bg-blue-100 text-blue-700';
                     case 'retrasado': return 'bg-red-100 text-red-700';
-                    case 'disponible': return 'bg-green-100 text-green-700';
+                    case 'disponible': return 'bg-blue-100 text-blue-700';
                     default: return 'bg-gray-100 text-gray-700';
                   }
                 };
@@ -675,7 +685,7 @@ export function Dashboard() {
                   switch (estado) {
                     case 'en_ruta': return '🚛';
                     case 'retrasado': return '⚠️';
-                    case 'disponible': return '✅';
+                    case 'disponible': return '🚛';
                     default: return '🚗';
                   }
                 };
@@ -683,8 +693,8 @@ export function Dashboard() {
                 return (
                   <div key={index} className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors">
                     <div className="flex items-center gap-4 flex-1">
-                      <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-400 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Truck className="w-6 h-6 text-white" />
+                      <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-400 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <Truck className="w-6 h-6 text-black drop-shadow-sm" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-gray-800 font-medium truncate">{vehiculo.nombre}</h4>
@@ -701,7 +711,8 @@ export function Dashboard() {
                         <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getEstadoColor(vehiculo.estado)}`}>
                           <span className="text-sm">{getEstadoIcon(vehiculo.estado)}</span>
                           {vehiculo.estado === 'en_ruta' ? 'En Ruta' :
-                            vehiculo.estado === 'retrasado' ? 'Retrasado' : vehiculo.estado}
+                            vehiculo.estado === 'retrasado' ? 'Retrasado' :
+                              vehiculo.estado === 'disponible' ? 'Disponible' : vehiculo.estado}
                         </span>
                       </div>
                       <div className="flex gap-2">
@@ -737,8 +748,8 @@ export function Dashboard() {
             {pedidosRecientes.map((pedido, index) => (
               <div key={index} className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center">
-                    <Package className="w-6 h-6 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center shadow-lg">
+                    <Package className="w-6 h-6 text-white drop-shadow-sm" />
                   </div>
                   <div>
                     <h4 className="text-gray-800 truncate max-w-32">{pedido.numeroPedido}</h4>
@@ -752,8 +763,8 @@ export function Dashboard() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="text-sm text-gray-800">${pedido.valor.toLocaleString()}</p>
-                    <span className={`px-3 py-1 rounded-full text-xs ${getEstadoColor(pedido.estado)}`}>
+                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getEstadoColor(pedido.estado)}`}>
+                      <span className="text-sm">{getEstadoIcon(pedido.estado)}</span>
                       {pedido.estado === 'entregado' ? 'Entregado' :
                         pedido.estado === 'en_transito' ? 'En Tránsito' :
                           pedido.estado === 'pendiente' ? 'Pendiente' : pedido.estado}
@@ -762,9 +773,6 @@ export function Dashboard() {
                   <div className="flex gap-2">
                     <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
                       <Eye className="w-4 h-4 text-gray-600" />
-                    </button>
-                    <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                      <MapPin className="w-4 h-4 text-gray-600" />
                     </button>
                   </div>
                 </div>
