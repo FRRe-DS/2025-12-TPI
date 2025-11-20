@@ -20,8 +20,8 @@ export default defineConfig({
   /* Shared settings for all the projects below. */
   use: {
     /* Base URL to use in actions like `await request.get('/shipping')`. */
-    /* Usa NEXT_PUBLIC_API_URL si está disponible, sino usa la URL del servicio desplegado */
-    baseURL: process.env.NEXT_PUBLIC_API_URL || process.env.SHIPPING_API_BASE_URL || 'https://api.logistica-utn.com',
+    /* Prioridad: SHIPPING_API_BASE_URL > NEXT_PUBLIC_API_URL > 127.0.0.1 (IPv4 explícito) */
+    baseURL: process.env.SHIPPING_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001',
     
     /* Extra HTTP headers to be sent with every request */
     extraHTTPHeaders: {
@@ -38,14 +38,14 @@ export default defineConfig({
     },
   ],
 
-  /* El servicio está desplegado externamente, no se inicia localmente */
-  // webServer: {
-  //   command: 'pnpm -C backend/services/shipping-service run start:dev',
-  //   url: 'http://localhost:3001/health',
-  //   reuseExistingServer: !process.env.CI,
-  //   timeout: 120000,
-  //   stdout: 'pipe',
-  //   stderr: 'pipe',
-  // },
+  /* Iniciar el servicio localmente si no está corriendo */
+  webServer: {
+    command: 'cd backend/services/shipping-service && export PORT=3001 && export NODE_ENV=development && export DATABASE_URL="${DATABASE_URL:-postgresql://postgres.ghexalvmqhvfnkgyagzb:Pepack.2025@aws-1-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true}" && export DIRECT_URL="${DIRECT_URL:-postgresql://postgres.ghexalvmqhvfnkgyagzb:Pepack.2025@aws-1-us-east-2.pooler.supabase.com:5432/postgres}" && export CONFIG_SERVICE_URL="${CONFIG_SERVICE_URL:-http://127.0.0.1:3003}" && export STOCK_SERVICE_URL="${STOCK_SERVICE_URL:-http://127.0.0.1:3002}" && export FRONTEND_URL="${FRONTEND_URL:-http://127.0.0.1:3000}" && TS_NODE_PROJECT=tsconfig.json npx ts-node -r tsconfig-paths/register src/main.ts',
+    url: 'http://127.0.0.1:3001/health',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120000,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  },
 });
 

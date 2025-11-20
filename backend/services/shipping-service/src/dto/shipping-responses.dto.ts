@@ -64,3 +64,13 @@ export class CancelShippingResponseDto {
   status: string;
   cancelled_at: string;
 }
+
+export class TransportMethodDto {
+  type: string;
+  name: string;
+  estimated_days: string;
+}
+
+export class TransportMethodsResponseDto {
+  transport_methods: TransportMethodDto[];
+}

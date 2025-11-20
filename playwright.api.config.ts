@@ -20,7 +20,8 @@ export default defineConfig({
   /* Shared settings for all the projects below. */
   use: {
     /* Base URL to use in actions like `await request.get('/health')`. */
-    baseURL: process.env.STOCK_API_BASE_URL || 'http://localhost:3002',
+    /* Usar 127.0.0.1 explícitamente para evitar problemas con IPv6 */
+    baseURL: process.env.STOCK_API_BASE_URL || 'http://127.0.0.1:3002',
     
     /* Extra HTTP headers to be sent with every request */
     extraHTTPHeaders: {
@@ -39,8 +40,8 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'cd backend/services/stock-integration-service && pnpm run start:dev',
-    url: 'http://localhost:3002/health',
+    command: 'cd backend/services/stock-integration-service && export PORT=3002 && export NODE_ENV=development && pnpm run start:dev',
+    url: 'http://127.0.0.1:3002/health',
     reuseExistingServer: !process.env.CI,
     timeout: 120000, // 2 minutos para iniciar el servicio
     stdout: 'pipe',

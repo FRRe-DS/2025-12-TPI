@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Param,
   Body,
   Query,
@@ -28,7 +29,9 @@ import {
   ShippingDetailDto,
   ListShippingResponseDto,
   CancelShippingResponseDto,
+  TransportMethodsResponseDto,
 } from './dto/shipping-responses.dto';
+import { UpdateShippingRequestDto } from './dto/update-shipping.dto';
 
 @ApiTags('📦 Logística - Gestión de Envíos')
 @Controller('shipping')
@@ -133,6 +136,48 @@ export class ShippingController {
       page,
       limit,
     });
+  }
+
+  @Get('transport-methods')
+  @ApiOperation({
+    summary: '🚚 Obtener métodos de transporte',
+    description: 'Retorna la lista de métodos de transporte disponibles con sus tiempos estimados',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de métodos de transporte obtenida exitosamente',
+    type: TransportMethodsResponseDto,
+  })
+  async getTransportMethods(): Promise<TransportMethodsResponseDto> {
+    return this.shippingService.getTransportMethods();
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '📝 Actualizar envío',
+    description:
+      'Actualiza el estado u otros campos del envío. Permite cambiar el estado del envío y registrar quién realizó la actualización.',
+  })
+  @ApiParam({ name: 'id', description: 'ID del envío a actualizar' })
+  @ApiResponse({
+    status: 200,
+    description: 'Envío actualizado exitosamente',
+    type: ShippingDetailDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos o transición de estado no permitida',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Envío no encontrado',
+  })
+  async updateShipping(
+    @Param('id') id: string,
+    @Body() body: UpdateShippingRequestDto,
+  ): Promise<ShippingDetailDto> {
+    return this.shippingService.updateShipping(id, body);
   }
 
   @Get(':id')

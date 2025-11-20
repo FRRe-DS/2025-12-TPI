@@ -19,11 +19,15 @@ import {
   CreateShippingRequestDto,
   CreateShippingResponseDto,
 } from './dto/create-shipping.dto';
+import { UpdateShippingRequestDto } from './dto/update-shipping.dto';
 import {
   ShippingDetailDto,
   ListShippingResponseDto,
   CancelShippingResponseDto,
+  TransportMethodsResponseDto,
+  TransportMethodDto,
 } from './dto/shipping-responses.dto';
+import { ShippingStatus } from './enums/shipping-status.enum';
 
 @Injectable()
 export class ShippingService {
@@ -322,6 +326,104 @@ export class ShippingService {
     };
   }
 
+  /**
+   * Valida si una transición de estado es permitida
+   */
+  private isValidStatusTransition(
+    currentStatus: string,
+    newStatus: ShippingStatus,
+  ): boolean {
+    const current = currentStatus.toUpperCase();
+    const next = newStatus.toUpperCase();
+
+    // Estados finales no pueden cambiar
+    if (current === 'DELIVERED' || current === 'CANCELLED') {
+      return false;
+    }
+
+    // No se puede volver a estados anteriores
+    const statusOrder = [
+      'CREATED',
+      'RESERVED',
+      'IN_TRANSIT',
+      'ARRIVED',
+      'IN_DISTRIBUTION',
+      'DELIVERED',
+    ];
+
+    const currentIndex = statusOrder.indexOf(current);
+    const nextIndex = statusOrder.indexOf(next);
+
+    // Permitir avanzar en el flujo, mantener el mismo estado, o cancelar
+    if (next === 'CANCELLED') {
+      return true; // Se puede cancelar desde cualquier estado (excepto finales)
+    }
+
+    // Permitir avanzar o mantener el mismo estado
+    return nextIndex >= currentIndex;
+  }
+
+  async updateShipping(
+    id: string,
+    dto: UpdateShippingRequestDto,
+  ): Promise<ShippingDetailDto> {
+    const shippingIndex = this.mockShipments.findIndex((s) => s.id === id);
+
+    if (shippingIndex === -1) {
+      throw new NotFoundException('Shipping not found');
+    }
+
+    const shipping = this.mockShipments[shippingIndex];
+
+    // Validar transición de estado si se está actualizando el status
+    if (dto.status) {
+      const currentStatus = shipping.status.toUpperCase();
+      const newStatus = dto.status.toUpperCase();
+
+      // No permitir actualizar si ya está en estado final
+      if (currentStatus === 'DELIVERED' || currentStatus === 'CANCELLED') {
+        throw new BadRequestException(
+          `Cannot update shipment. Current status '${shipping.status.toLowerCase()}' is final and cannot be changed.`,
+        );
+      }
+
+      // Validar transición válida
+      if (!this.isValidStatusTransition(currentStatus, dto.status)) {
+        throw new BadRequestException(
+          `Invalid status transition from '${shipping.status.toLowerCase()}' to '${dto.status}'.`,
+        );
+      }
+
+      // Si el nuevo estado es diferente, actualizar (normalizar a mayúsculas para consistencia)
+      if (newStatus !== currentStatus) {
+        shipping.status = newStatus;
+      }
+    }
+
+    // Actualizar timestamp
+    shipping.updatedAt = new Date();
+
+    // Agregar log entry
+    const logMessage = dto.status
+      ? `Status updated to '${dto.status}' by ${dto.updated_by || 'system'}`
+      : `Shipment updated by ${dto.updated_by || 'system'}`;
+
+    shipping.logs = [
+      ...shipping.logs,
+      {
+        timestamp: new Date(),
+        status: dto.status?.toUpperCase() || shipping.status.toUpperCase(),
+        message: logMessage,
+      },
+    ];
+
+    // Guardar cambios
+    this.mockShipments[shippingIndex] = shipping;
+
+    // Retornar el envío actualizado usando el mismo mapeo que getShippingDetail
+    return this.getShippingDetail(id);
+  }
+
   async cancelShipping(id: string): Promise<CancelShippingResponseDto> {
     const shippingIndex = this.mockShipments.findIndex((s) => s.id === id);
 
@@ -359,6 +461,36 @@ export class ShippingService {
       shipping_id: updated.id,
       status: 'cancelled',
       cancelled_at: updated.cancelledAt!.toISOString(),
+    };
+  }
+
+  async getTransportMethods(): Promise<TransportMethodsResponseDto> {
+    // Mock transport methods - en producción esto debería consultar al config service
+    const transportMethods: TransportMethodDto[] = [
+      {
+        type: 'road',
+        name: 'Transporte Terrestre',
+        estimated_days: '3-5',
+      },
+      {
+        type: 'air',
+        name: 'Transporte Aéreo',
+        estimated_days: '1-2',
+      },
+      {
+        type: 'sea',
+        name: 'Transporte Marítimo',
+        estimated_days: '15-30',
+      },
+      {
+        type: 'rail',
+        name: 'Transporte Ferroviario',
+        estimated_days: '5-7',
+      },
+    ];
+
+    return {
+      transport_methods: transportMethods,
     };
   }
 }
