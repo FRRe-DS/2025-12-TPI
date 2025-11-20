@@ -10,7 +10,25 @@
     "dev:frontend": "pnpm -C frontend dev",
     "dev": "pnpm run dev:frontend",
     "keycloak:up": "docker compose -f keycloak/docker-compose.yml up -d",
-    "keycloak:down": "docker compose -f keycloak/docker-compose.yml down"
+    "keycloak:down": "docker compose -f keycloak/docker-compose.yml down",
+    "test": "playwright test",
+    "test:frontend": "playwright test tests/frontend",
+    "test:frontend:ui": "playwright test tests/frontend --ui",
+    "test:frontend:headed": "playwright test tests/frontend --headed",
+    "test:frontend:debug": "playwright test tests/frontend --debug",
+    "test:api": "playwright test --config=playwright.api.config.ts",
+    "test:api:ui": "playwright test --config=playwright.api.config.ts --ui",
+    "test:api:headed": "playwright test --config=playwright.api.config.ts --headed",
+    "test:api:debug": "playwright test --config=playwright.api.config.ts --debug",
+    "test:api:list": "playwright test --config=playwright.api.config.ts --list",
+    "test:api:shipping": "playwright test --config=playwright.shipping.config.ts",
+    "test:api:shipping:ui": "playwright test --config=playwright.shipping.config.ts --ui",
+    "test:api:shipping:headed": "playwright test --config=playwright.shipping.config.ts --headed",
+    "test:api:shipping:debug": "playwright test --config=playwright.shipping.config.ts --debug",
+    "test:api:shipping:list": "playwright test --config=playwright.shipping.config.ts --list",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -37,6 +55,7 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
