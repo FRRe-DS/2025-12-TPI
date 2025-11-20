@@ -82,6 +82,20 @@ export class ShippingController {
     return this.shippingService.createShipping(body);
   }
 
+  @Get('transport-methods')
+  @ApiOperation({
+    summary: '🚢 Obtener métodos de transporte disponibles',
+    description: 'Retorna la lista de métodos de transporte que pueden usarse para envíos',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de métodos de transporte',
+    type: TransportMethodsResponseDto,
+  })
+  async getTransportMethods(): Promise<TransportMethodsResponseDto> {
+    return this.shippingService.getTransportMethods();
+  }
+
   @Get()
   @ApiOperation({
     summary: '📋 Listar envíos',

@@ -7,6 +7,7 @@ import {
   Logger,
   BadGatewayException,
   NotFoundException,
+  HttpException,
   Next,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
@@ -80,7 +81,7 @@ export class ProxyController {
     const method = req.method.toUpperCase();
 
     // Excluir rutas que no deben ser proxied - pasar al siguiente handler
-    if (path === '/health' || path.startsWith('/api/')) {
+    if (path === '/health' || path.startsWith('/api/docs')) {
       return next();
     }
 
@@ -88,16 +89,31 @@ export class ProxyController {
 
     try {
       // Usa el facade para hacer la request al servicio correcto
+      const headers = this.enrichHeaders(req);
       const response = await this.serviceFacade.request(
         method,
         path,
         req.body,
-        this.extractRelevantHeaders(req.headers),
+        headers,
       );
 
       // Retorna la respuesta con status 200 (o el que venga del servicio)
       return res.status(200).json(response);
     } catch (error: any) {
+      if (error instanceof HttpException) {
+        const status = error.getStatus();
+        const response = error.getResponse();
+        
+        // Solo loguear como error si es 5xx, warnings para 4xx
+        if (status >= 500) {
+           this.logger.error(`❌ Proxy Error ${status}: ${path}`, JSON.stringify(response));
+        } else {
+           this.logger.warn(`⚠️ Proxy Client Error ${status}: ${path}`, JSON.stringify(response));
+        }
+        
+        return res.status(status).json(response);
+      }
+
       if (error instanceof NotFoundException) {
         this.logger.warn(`❌ Service not found for route: ${path}`);
         return res.status(404).json({
@@ -123,12 +139,9 @@ export class ProxyController {
   }
 
   /**
-   * Extrae headers relevantes para pasar al servicio destino
-   * (no queremos pasar headers internos de Express)
+   * Extrae headers relevantes y añade contexto de usuario
    */
-  private extractRelevantHeaders(
-    headers: Record<string, any>,
-  ): Record<string, string> {
+  private enrichHeaders(req: Request): Record<string, string> {
     const relevantHeaders = [
       'authorization',
       'content-type',
@@ -141,10 +154,21 @@ export class ProxyController {
 
     const filtered: Record<string, string> = {};
 
-    for (const [key, value] of Object.entries(headers)) {
+    // 1. Copiar headers originales permitidos
+    for (const [key, value] of Object.entries(req.headers)) {
       if (relevantHeaders.includes(key.toLowerCase())) {
         filtered[key] = String(value);
       }
+    }
+
+    // 2. Inyectar contexto de usuario autenticado (si existe)
+    const user = (req as any).user;
+    if (user) {
+      if (user.sub) filtered['x-user-id'] = user.sub;
+      if (user.email) filtered['x-user-email'] = user.email;
+      if (user.preferred_username)
+        filtered['x-user-username'] = user.preferred_username;
+      if (user.scope) filtered['x-user-scope'] = user.scope;
     }
 
     return filtered;
