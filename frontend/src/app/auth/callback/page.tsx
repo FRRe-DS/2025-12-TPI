@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { initializeKeycloak } from '@/app/lib/middleware/auth/keycloak.config';
+import { initializeKeycloak, keycloakInitOptions } from '@/app/lib/middleware/auth/keycloak.config';
 import { authStore } from '@/app/lib/middleware/stores/auth.store';
 
 /**
@@ -14,15 +14,22 @@ export default function AuthCallbackPage() {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const processingRef = useRef(false);
 
   useEffect(() => {
+    // Prevenir doble ejecución en React StrictMode
+    if (processingRef.current) {
+      return;
+    }
+    processingRef.current = true;
+
     const handleCallback = async () => {
       try {
         console.log('📍 En página de callback de Keycloak - procesando autenticación...');
 
         // Inicializar Keycloak para procesar el código de autorización
         const keycloak = initializeKeycloak();
-        
+
         // Configurar listeners antes de inicializar
         keycloak.onAuthSuccess = () => {
           console.log('✅ Autenticación exitosa en callback');
@@ -41,90 +48,46 @@ export default function AuthCallbackPage() {
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
         const state = urlParams.get('state');
-        
-        console.log('🔐 Verificando callback:', { 
+
+        console.log('🔐 Verificando callback:', {
           hasCode: !!code,
           hasState: !!state,
           url: window.location.href.substring(0, 100) // Primeros 100 caracteres para no exponer token
         });
-        
-        // En el callback, Keycloak procesará automáticamente el código de autorización
-        // cuando se inicializa, independientemente del onLoad
-        // Usamos 'check-sso' pero Keycloak detectará el código y lo procesará
+
+        // Usar las mismas opciones que en el resto de la app, pero forzando check-sso
+        // Keycloak detectará automáticamente el código en la URL
         const authenticated = await keycloak.init({
-          onLoad: 'check-sso', // Keycloak procesará automáticamente el código si está en la URL
-          pkceMethod: false,
-          checkLoginIframe: false,
-          enableLogging: true,
+          ...keycloakInitOptions,
+          onLoad: 'check-sso',
           redirectUri: `${window.location.origin}/auth/callback`,
         });
-        
-        console.log('🔐 Después de init - authenticated:', authenticated, 'token:', keycloak.token ? 'presente' : 'ausente', 'code:', code ? 'presente' : 'ausente');
 
-        // Si hay código pero no hay token, esperar con polling (Keycloak puede estar procesando)
-        let finalAuthenticated = authenticated;
-        let finalToken = keycloak.token;
-        
-        if (code && !finalToken && !authenticated) {
-          console.log('⏳ Código de autorización encontrado, esperando procesamiento...');
-          // Polling cada 500ms hasta obtener token o timeout (3 segundos)
-          for (let i = 0; i < 6; i++) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            if (keycloak.token) {
-              console.log(`✅ Token obtenido después de ${(i + 1) * 500}ms`);
-              finalToken = keycloak.token;
-              finalAuthenticated = true;
-              break;
-            }
-          }
-          
-          if (!finalToken) {
-            console.warn('⚠️ Token no disponible después de esperar 3 segundos');
-          }
-        }
+        console.log('🔐 Después de init - authenticated:', authenticated, 'token:', keycloak.token ? 'presente' : 'ausente');
 
-        // Verificar nuevamente antes de decidir (por si acaso)
-        if (!finalToken && keycloak.token) {
-          finalToken = keycloak.token;
-          finalAuthenticated = true;
-          console.log('✅ Token detectado en verificación final');
-        }
-
-        console.log('🔐 Estado final - authenticated:', finalAuthenticated, 'token:', finalToken ? 'presente' : 'ausente');
-
-        if (finalAuthenticated && finalToken) {
+        if (authenticated && keycloak.token) {
           console.log('✅ Token obtenido en callback, guardando...');
-          authStore.setToken(finalToken);
-          
+          authStore.setToken(keycloak.token);
+
           // Verificar que el token se guardó correctamente
           const savedToken = authStore.getToken() || localStorage.getItem('auth_token');
           if (!savedToken) {
             console.warn('⚠️ Token no se guardó correctamente, intentando nuevamente...');
-            authStore.setToken(finalToken);
-            localStorage.setItem('auth_token', finalToken);
+            authStore.setToken(keycloak.token);
+            localStorage.setItem('auth_token', keycloak.token);
           }
-          
-          // Esperar un poco más para asegurar que todo se guardó
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
+
           // Limpiar parámetros de la URL para evitar problemas
           if (code || state) {
             window.history.replaceState({}, document.title, '/auth/callback');
           }
-          
+
           console.log('✅ Token guardado correctamente, redirigiendo al dashboard');
           setIsProcessing(false);
-          // Usar window.location en lugar de router.push para forzar recarga completa
+          // Usar window.location en lugar de router.push para forzar recarga completa y asegurar estado limpio
           window.location.href = '/dashboard';
         } else {
           console.warn('⚠️ No se pudo obtener token en callback');
-          console.warn('⚠️ Estado:', { 
-            authenticated, 
-            finalAuthenticated, 
-            hasToken: !!keycloak.token, 
-            hasCode: !!code,
-            hasState: !!state
-          });
           setIsProcessing(false);
           // Redirigir al login para intentar nuevamente
           router.push('/');
@@ -147,9 +110,11 @@ export default function AuthCallbackPage() {
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="text-center">
         <h1 className="text-2xl font-bold mb-4">
-          {isProcessing ? 'Procesando autenticación...' : 'Redirigiendo...'}
+          {error ? 'Error de Autenticación' : (isProcessing ? 'Procesando autenticación...' : 'Redirigiendo...')}
         </h1>
-        <p className="text-gray-600">Por favor espera mientras completamos tu login.</p>
+        <p className="text-gray-600">
+          {error ? error : 'Por favor espera mientras completamos tu login.'}
+        </p>
       </div>
     </div>
   );
