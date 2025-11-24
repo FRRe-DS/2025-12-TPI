@@ -40,6 +40,10 @@ export class HttpClient {
   private setupInterceptors() {
     this.client.interceptors.request.use(
       async (config) => {
+        // Rutas públicas que no requieren autenticación
+        const publicRoutes = ['/stock/productos', '/stock/reservas', '/health', '/gateway/status'];
+        const isPublicRoute = publicRoutes.some(route => config.url?.includes(route));
+        
         let token = authStore.getToken();
         if (!token && typeof window !== 'undefined') {
           token = localStorage.getItem('auth_token') || null;
@@ -62,9 +66,21 @@ export class HttpClient {
           }
         }
         
+        // Si no hay token y no es una ruta pública, redirigir al login
+        if (!token && !isPublicRoute && typeof window !== 'undefined') {
+          const currentPath = window.location.pathname;
+          // No redirigir si ya estamos en la página de login o callback
+          if (!currentPath.startsWith('/auth') && currentPath !== '/') {
+            console.warn('⚠️ No token found for protected route, redirecting to login...');
+            window.location.href = '/';
+            // Rechazar el request para evitar que se ejecute
+            return Promise.reject(new Error('No token available, redirecting to login'));
+          }
+        }
+        
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
-        } else {
+        } else if (!isPublicRoute) {
           // Log para debug - remover en producción
           console.warn('⚠️ No token found for request:', config.url);
         }
