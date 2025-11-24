@@ -2,40 +2,79 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { initializeKeycloak } from '@/app/lib/middleware/auth/keycloak.config';
+import { authStore } from '@/app/lib/middleware/stores/auth.store';
 
 /**
  * Página de callback de Keycloak
  * Keycloak redirige aquí después de autenticación exitosa
- * Esta página simplemente redirige al dashboard después de un pequeño delay
+ * Esta página procesa el código de autorización y obtiene el token
  */
 export default function AuthCallbackPage() {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        console.log('📍 En página de callback de Keycloak');
+        console.log('📍 En página de callback de Keycloak - procesando autenticación...');
 
-        // Keycloak ya procesó el authorization code durante el init
-        // El token ya está guardado en KeycloakProvider
-        // Solo redirigir al dashboard después de un pequeño delay
+        // Inicializar Keycloak para procesar el código de autorización
+        const keycloak = initializeKeycloak();
+        
+        // Configurar listeners antes de inicializar
+        keycloak.onAuthSuccess = () => {
+          console.log('✅ Autenticación exitosa en callback');
+          if (keycloak.token) {
+            console.log('💾 Guardando token en store y localStorage');
+            authStore.setToken(keycloak.token);
+          }
+        };
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        keycloak.onAuthError = (error) => {
+          console.error('❌ Error de autenticación en callback:', error);
+          setError('Error al procesar la autenticación');
+        };
 
-        console.log('✅ Redirigiendo al dashboard');
-        setIsProcessing(false);
-        router.push('/dashboard');
+        // Inicializar Keycloak con 'check-sso' para procesar el callback
+        // En el callback, Keycloak procesará automáticamente el código de autorización
+        const authenticated = await keycloak.init({
+          onLoad: 'check-sso',
+          pkceMethod: false,
+          checkLoginIframe: false,
+          enableLogging: true,
+        });
+
+        console.log('🔐 Keycloak init en callback - authenticated:', authenticated, 'token:', keycloak.token ? 'presente' : 'ausente');
+
+        if (authenticated && keycloak.token) {
+          console.log('✅ Token obtenido en callback, guardando...');
+          authStore.setToken(keycloak.token);
+          
+          // Pequeño delay para asegurar que el token se guardó
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          console.log('✅ Redirigiendo al dashboard');
+          setIsProcessing(false);
+          router.push('/dashboard');
+        } else {
+          console.warn('⚠️ No se pudo obtener token en callback, redirigiendo al login');
+          setIsProcessing(false);
+          router.push('/');
+        }
       } catch (error) {
         console.error('❌ Error en callback:', error);
+        setError('Error al procesar la autenticación');
         setIsProcessing(false);
-        router.push('/');
+        setTimeout(() => {
+          router.push('/');
+        }, 2000);
       }
     };
 
-    // Solo ejecutar una vez
-    const timer = setTimeout(handleCallback, 100);
-    return () => clearTimeout(timer);
+    // Ejecutar inmediatamente
+    handleCallback();
   }, [router]);
 
   return (
