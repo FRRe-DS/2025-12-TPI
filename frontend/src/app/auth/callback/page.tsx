@@ -61,36 +61,63 @@ export default function AuthCallbackPage() {
         
         console.log('🔐 Después de init - authenticated:', authenticated, 'token:', keycloak.token ? 'presente' : 'ausente', 'code:', code ? 'presente' : 'ausente');
 
-        // Si hay código pero no hay token, esperar un poco más (Keycloak puede estar procesando)
+        // Si hay código pero no hay token, esperar con polling (Keycloak puede estar procesando)
         let finalAuthenticated = authenticated;
-        if (code && !keycloak.token && !authenticated) {
+        let finalToken = keycloak.token;
+        
+        if (code && !finalToken && !authenticated) {
           console.log('⏳ Código de autorización encontrado, esperando procesamiento...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Polling cada 500ms hasta obtener token o timeout (3 segundos)
+          for (let i = 0; i < 6; i++) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            if (keycloak.token) {
+              console.log(`✅ Token obtenido después de ${(i + 1) * 500}ms`);
+              finalToken = keycloak.token;
+              finalAuthenticated = true;
+              break;
+            }
+          }
           
-          // Verificar nuevamente después de esperar
-          if (keycloak.token) {
-            console.log('✅ Token obtenido después de esperar');
-            finalAuthenticated = true;
-          } else {
-            console.warn('⚠️ Token no disponible después de esperar');
+          if (!finalToken) {
+            console.warn('⚠️ Token no disponible después de esperar 3 segundos');
           }
         }
 
-        console.log('🔐 Estado final - authenticated:', finalAuthenticated, 'token:', keycloak.token ? 'presente' : 'ausente');
+        // Verificar nuevamente antes de decidir (por si acaso)
+        if (!finalToken && keycloak.token) {
+          finalToken = keycloak.token;
+          finalAuthenticated = true;
+          console.log('✅ Token detectado en verificación final');
+        }
 
-        if (finalAuthenticated && keycloak.token) {
+        console.log('🔐 Estado final - authenticated:', finalAuthenticated, 'token:', finalToken ? 'presente' : 'ausente');
+
+        if (finalAuthenticated && finalToken) {
           console.log('✅ Token obtenido en callback, guardando...');
-          authStore.setToken(keycloak.token);
+          authStore.setToken(finalToken);
           
           // Pequeño delay para asegurar que el token se guardó
           await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Limpiar parámetros de la URL para evitar problemas
+          if (code || state) {
+            window.history.replaceState({}, document.title, '/auth/callback');
+          }
           
           console.log('✅ Redirigiendo al dashboard');
           setIsProcessing(false);
           router.push('/dashboard');
         } else {
-          console.warn('⚠️ No se pudo obtener token en callback, redirigiendo al login');
+          console.warn('⚠️ No se pudo obtener token en callback');
+          console.warn('⚠️ Estado:', { 
+            authenticated, 
+            finalAuthenticated, 
+            hasToken: !!keycloak.token, 
+            hasCode: !!code,
+            hasState: !!state
+          });
           setIsProcessing(false);
+          // Redirigir al login para intentar nuevamente
           router.push('/');
         }
       } catch (error) {
