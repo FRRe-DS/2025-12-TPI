@@ -37,7 +37,10 @@ export class JwtGuard implements CanActivate {
       path.startsWith('/api/docs') ||
       path.startsWith('/health') ||
       path === '/gateway/status' ||
-      path === '/'
+      path === '/' ||
+      // Rutas de stock/productos pueden ser públicas (catalogo público)
+      path.startsWith('/stock/productos') ||
+      path.startsWith('/stock/reservas')
     ) {
       return true;
     }

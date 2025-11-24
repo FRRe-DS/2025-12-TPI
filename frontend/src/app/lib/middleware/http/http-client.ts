@@ -58,6 +58,19 @@ export class HttpClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
+        // Manejar errores 401 (Unauthorized) - redirigir al login
+        if (error.response?.status === 401 && typeof window !== 'undefined') {
+          const path = window.location.pathname;
+          // No redirigir si ya estamos en la página de login o callback
+          if (!path.startsWith('/auth') && path !== '/') {
+            console.warn('⚠️ Token inválido o expirado, redirigiendo al login...');
+            // Limpiar token inválido
+            localStorage.removeItem('auth_token');
+            authStore.setToken(null);
+            // Redirigir al login
+            window.location.href = '/';
+          }
+        }
         throw transformAxiosError(error);
       }
     );
