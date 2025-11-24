@@ -49,22 +49,36 @@ export default function AuthCallbackPage() {
           redirectUri: `${window.location.origin}/auth/callback`,
         });
         
-        // Si aún no está autenticado después del init, puede que necesitemos procesar el callback manualmente
-        // Keycloak debería haber procesado el código automáticamente, pero verificamos
-        if (!authenticated && !keycloak.token) {
-          // Intentar procesar el callback manualmente revisando la URL
-          const urlParams = new URLSearchParams(window.location.search);
-          const code = urlParams.get('code');
-          if (code) {
-            console.log('🔐 Código de autorización encontrado en URL, Keycloak debería procesarlo automáticamente');
-            // Esperar un poco más para que Keycloak procese
-            await new Promise(resolve => setTimeout(resolve, 1000));
+        // Verificar parámetros de callback en la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        
+        console.log('🔐 Parámetros en callback:', { 
+          code: code ? 'presente' : 'ausente', 
+          state: state ? 'presente' : 'ausente',
+          authenticated,
+          hasToken: !!keycloak.token
+        });
+
+        // Si hay código pero no hay token, esperar un poco más (Keycloak puede estar procesando)
+        let finalAuthenticated = authenticated;
+        if (code && !keycloak.token && !authenticated) {
+          console.log('⏳ Código de autorización encontrado, esperando procesamiento...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Verificar nuevamente después de esperar
+          if (keycloak.token) {
+            console.log('✅ Token obtenido después de esperar');
+            finalAuthenticated = true;
+          } else {
+            console.warn('⚠️ Token no disponible después de esperar');
           }
         }
 
-        console.log('🔐 Keycloak init en callback - authenticated:', authenticated, 'token:', keycloak.token ? 'presente' : 'ausente');
+        console.log('🔐 Estado final - authenticated:', finalAuthenticated, 'token:', keycloak.token ? 'presente' : 'ausente');
 
-        if (authenticated && keycloak.token) {
+        if (finalAuthenticated && keycloak.token) {
           console.log('✅ Token obtenido en callback, guardando...');
           authStore.setToken(keycloak.token);
           
