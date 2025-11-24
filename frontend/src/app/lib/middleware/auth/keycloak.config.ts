@@ -43,9 +43,9 @@ export function getKeycloak(): Keycloak | null {
 }
 
 export const keycloakInitOptions = {
-  // 'login-required' solo en la página principal para forzar login
-  // En el callback, se usa 'check-sso' para evitar loops
-  onLoad: undefined as any, // No usar onLoad automático - manejar manualmente
+  // 'check-sso' verifica si hay una sesión activa sin redirigir automáticamente
+  // Si no hay sesión, authenticated será false y podemos manejar el login manualmente
+  onLoad: 'check-sso' as any,
   pkceMethod: false as any, // PKCE deshabilitado (problemas con Web Crypto API)
   checkLoginIframe: false,
   enableLogging: true,

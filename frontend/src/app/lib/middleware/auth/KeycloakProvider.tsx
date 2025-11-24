@@ -86,7 +86,22 @@ export const KeycloakProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           authStore.setToken(keycloak.token);
         } else if (authenticated === false) {
           console.log('ℹ️ Usuario no autenticado.');
-          // No forzar login - dejar que cada ruta protegida maneje esto
+          
+          // Si estamos en una ruta protegida (no pública), redirigir al login
+          const protectedPaths = ['/dashboard', '/config', '/shipping', '/operaciones', '/analiticas'];
+          const isProtectedPath = protectedPaths.some(path => currentPath.startsWith(path));
+          
+          // Rutas públicas que no requieren autenticación
+          const publicPaths = ['/', '/auth', '/productos', '/reservas'];
+          const isPublicPath = publicPaths.some(path => currentPath === path || currentPath.startsWith(path));
+          
+          if (isProtectedPath && !isPublicPath) {
+            console.log('🔒 Ruta protegida sin autenticación, redirigiendo al login...');
+            // Pequeño delay para evitar loops
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 100);
+          }
         }
       } catch (error) {
         console.error('❌ Keycloak initialization error:', error);
