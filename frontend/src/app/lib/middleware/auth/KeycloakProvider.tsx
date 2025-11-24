@@ -38,9 +38,10 @@ export const KeycloakProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           return;
         }
 
-        // Limpiar callbacks y tokens viejos de Keycloak antes de inicializar
+        // Limpiar tokens viejos de Keycloak (opcional, pero seguro)
+        // NOTA: NO borrar keys que empiecen con 'kc-callback-' porque son necesarias para el redirect
         Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith('kc-callback-') || key.startsWith('KEYCLOAK_')) {
+          if (key.startsWith('KEYCLOAK_')) {
             localStorage.removeItem(key);
           }
         });
