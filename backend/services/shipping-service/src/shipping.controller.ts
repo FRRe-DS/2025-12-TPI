@@ -37,14 +37,14 @@ export class ShippingController {
   constructor(private readonly shippingService: ShippingService) {}
 
   @Post('cost')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: '💰 Calcular costo de envío',
     description:
       'Calcula el costo total de envío incluyendo productos y transporte',
   })
   @ApiResponse({
-    status: 200,
+    status: 201,
     description: 'Cálculo de costo exitoso',
     type: CalculateCostResponseDto,
   })
@@ -133,15 +133,17 @@ export class ShippingController {
     type: ListShippingResponseDto,
   })
   async listShipments(
-    @Query('user_id') userId?: number,
+    @Query('user_id') userId?: string,
+    @Query('userId') userIdCamel?: string,
     @Query('status') status?: string,
     @Query('from_date') fromDate?: string,
     @Query('to_date') toDate?: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ): Promise<ListShippingResponseDto> {
+    const resolvedUser = userIdCamel ?? userId;
     return this.shippingService.listShipments({
-      userId,
+      userId: resolvedUser,
       status,
       fromDate,
       toDate,

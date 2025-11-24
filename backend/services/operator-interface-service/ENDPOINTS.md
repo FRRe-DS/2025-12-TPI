@@ -105,7 +105,7 @@ El gateway enruta automáticamente todas las rutas no manejadas localmente a los
 |---------|----------------|---------|
 | `/config/*` | Config Service (3003) | `/config/transport-methods` → `http://localhost:3003/config/transport-methods` |
 | `/shipping/*` | Shipping Service (3001) | `/shipping/cost` → `http://localhost:3001/shipping/cost` |
-| `/stock/*` | Stock Integration (3002) | `/stock/availability` → `http://localhost:3002/stock/availability` |
+| `/stock/*` | Stock Integration (3002) | `/stock/productos` → `http://localhost:3002/stock/productos` |
 | `/fleet/*` | Config Service (3003) | `/fleet/drivers` → `http://localhost:3003/fleet/drivers` |
 
 #### Request Headers
@@ -170,6 +170,72 @@ Cuando el servicio backend no responde en tiempo (timeout: 10s):
   "timeout": 10000
 }
 ```
+
+---
+
+## Stock Integration (Proxy)
+
+El gateway expone todas las rutas de `stock-integration-service` bajo el prefijo `/stock/*`. Las más utilizadas por el frontend son:
+
+### GET `/stock/productos`
+
+- **Descripción:** Retorna el catálogo completo de productos disponible en Compras/Stock.
+- **Cache:** El microservicio cachea la lista y la refresca automáticamente cuando el Stock API responde.
+- **Response (200):**
+
+```json
+[
+  {
+    "id": 42,
+    "nombre": "Monitor 27\"",
+    "descripcion": "QHD IPS",
+    "precio": 280000,
+    "stockDisponible": 8,
+    "pesoKg": 4.5,
+    "dimensiones": { "largoCm": 20, "anchoCm": 65, "altoCm": 45 },
+    "ubicacion": {
+      "street": "Av. Colón 123",
+      "city": "Resistencia",
+      "state": "Chaco",
+      "postal_code": "H3500ABC",
+      "country": "Argentina"
+    },
+    "imagenes": [
+      { "url": "https://cdn.example.com/products/42/front.jpg", "esPrincipal": 1 }
+    ],
+    "categorias": [{ "id": 3, "nombre": "Electrónica" }]
+  }
+]
+```
+
+### GET `/stock/productos/:id`
+
+Obtiene el detalle de un producto específico (proxy directo al endpoint interno).
+
+### GET `/stock/reservas`
+
+- **Descripción:** Lista reservas de Stock con filtros opcionales.
+- **Query Params:**
+  - `usuarioId` _(opcional)_ → Filtra por propietario.
+  - `estado` _(opcional)_ → `confirmado | pendiente | cancelado`.
+  - `idCompra` _(opcional)_ → Combinar con `usuarioId` para obtener una sola reserva.
+- **Ejemplo:** `/stock/reservas?usuarioId=123&estado=pendiente`
+
+### GET `/stock/reservas/:id`
+
+Proxy directo al detalle de una reserva (requiere `usuarioId` en query para compatibilidad con el API externo).
+
+### POST `/stock/reservas`
+
+Creación de nuevas reservas. El gateway pasa los headers JWT tal como llegan desde Keycloak.
+
+### PATCH `/stock/reservas/:id`
+
+Actualiza el estado (`confirmado | pendiente | cancelado`). El cuerpo debe incluir `usuarioId` y `estado`.
+
+### DELETE `/stock/reservas/:id`
+
+Cancela una reserva. El cuerpo acepta un campo opcional `motivo`.
 
 ---
 

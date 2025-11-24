@@ -71,6 +71,13 @@ export class StockCacheService {
   }
 
   /**
+   * Clave para el listado completo de productos
+   */
+  getProductsListKey(): string {
+    return 'stock:products:list';
+  }
+
+  /**
    * Genera claves estructuradas para reservas por ID de compra
    */
   getReservaByCompraKey(compraId: string, userId: number): string {
@@ -82,6 +89,16 @@ export class StockCacheService {
    */
   getReservaByIdKey(reservaId: number, userId: number): string {
     return `stock:reserva:${reservaId}:${userId}`;
+  }
+
+  /**
+   * Clave para listados de reservas (global o por usuario)
+   */
+  getReservasListKey(userId?: number): string {
+    if (typeof userId === 'number') {
+      return `stock:reservas:user:${userId}`;
+    }
+    return 'stock:reservas:all';
   }
 
   /**

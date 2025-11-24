@@ -1,6 +1,7 @@
 export class ProductQtyDto {
-  product_id: number;
+  productId: number;
   quantity: number;
+  reference?: string;
 }
 
 export class ShippingLogDto {
@@ -13,54 +14,50 @@ export class AddressResponseDto {
   street: string;
   city: string;
   state: string;
-  postal_code: string;
+  postalCode: string;
   country: string;
 }
 
 export class ShippingDetailDto {
-  shipping_id: string;
-  order_id: number;
-  user_id: number;
-  delivery_address: AddressResponseDto;
-  departure_address?: AddressResponseDto;
+  shipmentId: string;
+  orderId: string;
+  userId: string;
+  destination: AddressResponseDto;
+  origin?: AddressResponseDto;
   products: ProductQtyDto[];
   status: string;
-  transport_type: string;
-  tracking_number?: string;
-  carrier_name?: string;
-  total_cost: number;
+  transportType: string;
+  trackingNumber?: string;
+  carrierName?: string;
+  totalCost: number;
   currency: string;
-  estimated_delivery_at: string;
-  created_at: string;
-  updated_at: string;
+  estimatedDeliveryDate: string;
+  createdAt: string;
+  updatedAt: string;
   logs: ShippingLogDto[];
 }
 
 export class ShippingSummaryDto {
-  shipping_id: string;
-  order_id: number;
-  user_id: number;
-  products: ProductQtyDto[];
+  shipmentId: string;
+  orderId: string;
+  userId: string;
   status: string;
-  transport_type: string;
-  estimated_delivery_at: string;
-  created_at: string;
-}
-
-export class PaginationMetaDto {
-  current_page: number;
-  total_pages: number;
-  total_items: number;
-  items_per_page: number;
+  transportType: string;
+  estimatedDeliveryDate: string;
+  createdAt: string;
+  products: ProductQtyDto[];
 }
 
 export class ListShippingResponseDto {
   shipments: ShippingSummaryDto[];
-  pagination: PaginationMetaDto;
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export class CancelShippingResponseDto {
-  shipping_id: string;
+  shipmentId: string;
   status: string;
-  cancelled_at: string;
+  cancelledAt: string;
+  message?: string;
 }

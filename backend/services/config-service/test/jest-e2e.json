@@ -14,7 +14,7 @@
   ],
   "coverageDirectory": "../coverage-e2e",
   "moduleNameMapper": {
-    "^@logistics/(.*)$": "<rootDir>/../../shared/$1/src"
+    "^@logistics/(.*)$": "<rootDir>/../../../shared/$1/src"
   },
   "testTimeout": 30000
 }

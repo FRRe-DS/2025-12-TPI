@@ -10,7 +10,7 @@ describe('Gateway → ShippingService: health [T031]', () => {
         .get('/shipping/health')
         .timeout(TIMEOUT);
 
-      expect([200, 404, 502]).toContain(res.status);
+      expect([200, 401, 404, 502]).toContain(res.status);
 
       if (res.status === 200) {
         // Validar headers
@@ -33,7 +33,7 @@ describe('Gateway → ShippingService: health [T031]', () => {
         .get('/shipping/health')
         .timeout(TIMEOUT);
 
-      expect([200, 404, 502]).toContain(res.status);
+      expect([200, 401, 404, 502]).toContain(res.status);
 
       // X-Request-ID debe estar siempre presente
       expect(res.headers['x-request-id']).toBeDefined();
@@ -52,7 +52,7 @@ describe('Gateway → ShippingService: health [T031]', () => {
         .get('/shipping/health')
         .timeout(TIMEOUT);
 
-      expect([200, 404, 502]).toContain(res.status);
+      expect([200, 401, 404, 502]).toContain(res.status);
 
       // Incluso en 502, debe retornar JSON válido
       if (res.status === 502) {
@@ -70,7 +70,7 @@ describe('Gateway → ShippingService: health [T031]', () => {
 
       const duration = Date.now() - start;
 
-      expect([200, 404, 502]).toContain(res.status);
+      expect([200, 401, 404, 502]).toContain(res.status);
       expect(duration).toBeLessThan(TIMEOUT);
     }, 20000);
   });

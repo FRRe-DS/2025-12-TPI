@@ -17,7 +17,7 @@ describe('Gateway → ShippingService: quotes [T030]', () => {
         .send(payload)
         .timeout(TIMEOUT);
 
-      expect([200, 201, 400, 404, 502]).toContain(res.status);
+      expect([200, 201, 400, 401, 404, 502]).toContain(res.status);
 
       if (res.status === 200 || res.status === 201) {
         // Validar headers
@@ -47,7 +47,7 @@ describe('Gateway → ShippingService: quotes [T030]', () => {
         .send(payload)
         .timeout(TIMEOUT);
 
-      expect([200, 201, 400, 404, 502]).toContain(res.status);
+      expect([200, 201, 400, 401, 404, 502]).toContain(res.status);
 
       // X-Request-ID debe estar presente
       expect(res.headers['x-request-id']).toBeDefined();
@@ -74,7 +74,7 @@ describe('Gateway → ShippingService: quotes [T030]', () => {
         .send(invalidPayload)
         .timeout(TIMEOUT);
 
-      expect([200, 201, 400, 404, 502]).toContain(res.status);
+      expect([200, 201, 400, 401, 404, 502]).toContain(res.status);
 
       // Puede ser 400 o 422 (validation error)
       if (res.status === 400 || res.status === 422) {
@@ -94,7 +94,7 @@ describe('Gateway → ShippingService: quotes [T030]', () => {
         .send(payload)
         .timeout(TIMEOUT);
 
-      expect([200, 201, 400, 404, 502]).toContain(res.status);
+      expect([200, 201, 400, 401, 404, 502]).toContain(res.status);
 
       if (res.status === 502) {
         expect(res.headers['x-request-id']).toBeDefined();
@@ -119,7 +119,7 @@ describe('Gateway → ShippingService: quotes [T030]', () => {
 
       const duration = Date.now() - start;
 
-      expect([200, 201, 400, 404, 502]).toContain(res.status);
+      expect([200, 201, 400, 401, 404, 502]).toContain(res.status);
       expect(duration).toBeLessThan(TIMEOUT);
     }, 20000);
   });

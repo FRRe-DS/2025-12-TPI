@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { isUUID } from 'class-validator';
 import { PrismaService, TariffConfig } from '@logistics/database';
 import { CreateTariffConfigDto } from '../dto/create-tariff-config.dto';
 import { UpdateTariffConfigDto } from '../dto/update-tariff-config.dto';
@@ -58,6 +64,9 @@ export class TariffConfigService {
    * Obtiene una configuración de tarifa por ID
    */
   async findOne(id: string): Promise<TariffConfig> {
+    if (!isUUID(id)) {
+      throw new BadRequestException('Invalid UUID format');
+    }
     this.logger.log(`Obteniendo configuración de tarifa con ID: ${id}`);
 
     const tariffConfig = await this.prisma.tariffConfig.findUnique({

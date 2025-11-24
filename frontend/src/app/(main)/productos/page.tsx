@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Package,
   DollarSign,
@@ -22,89 +22,30 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-
-interface Producto {
-  id: number;
-  nombre: string;
-  descripcion: string;
-  precio: string;
-  stockDisponible: number;
-  pesoKg: string;
-  dimensiones: {
-    largoCm: string;
-    anchoCm: string;
-    altoCm: string;
-  };
-  ubicacion: {
-    calle: string;
-    ciudad: string;
-    provincia: string;
-    codigoPostal: string;
-    pais: string;
-  };
-  imagenes: Array<{
-    id: number;
-    url: string;
-    esPrincipal: boolean;
-    productoId: number;
-  }>;
-  categorias: Array<{
-    id: number;
-    nombre: string;
-    descripcion: string;
-  }>;
-}
+import { useProductos } from '@/app/lib/middleware/stores/composables/useProductos';
+import type { StockProduct } from '@/app/lib/middleware/services/stock.service';
 
 type SortOption = 'id' | 'nombre' | 'precio' | 'stock';
 type SortDirection = 'asc' | 'desc';
 
 export default function ProductosPage() {
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const {
+    items: productos,
+    isLoading,
+    error,
+    lastUpdatedAt,
+    refresh,
+  } = useProductos();
   const [sortBy, setSortBy] = useState<SortOption>('id');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-  const fetchProductos = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('https://comprasg5.mmalgor.com.ar/v1/productos', {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      setProductos(data);
-      setLastUpdate(new Date());
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al cargar productos';
-      setError(message);
-      console.error('Error fetching productos:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProductos();
-  }, []);
-
-  const formatPrice = (price: string): string => {
-    const numPrice = parseFloat(price);
-    if (isNaN(numPrice)) return price;
+  const formatPrice = (price: number): string => {
+    const value = Number.isFinite(price) ? price : 0;
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
       currency: 'ARS',
       minimumFractionDigits: 2,
-    }).format(numPrice);
+    }).format(value);
   };
 
   const getStockBadgeVariant = (stock: number): 'default' | 'secondary' | 'destructive' | 'outline' => {
@@ -214,9 +155,9 @@ export default function ProductosPage() {
             </h1>
             <p className="text-cyan-50 mt-2">
               {productos.length} {productos.length === 1 ? 'producto' : 'productos'} disponibles
-              {lastUpdate && (
+              {lastUpdatedAt && (
                 <span className="ml-2 text-sm">
-                  (Actualizado: {lastUpdate.toLocaleTimeString('es-AR')})
+                  (Actualizado: {lastUpdatedAt.toLocaleTimeString('es-AR')})
                 </span>
               )}
             </p>
@@ -245,7 +186,7 @@ export default function ProductosPage() {
               </div>
             </div>
             <Button
-              onClick={fetchProductos}
+              onClick={refresh}
               disabled={isLoading}
               variant="secondary"
               className="bg-white text-cyan-600 hover:bg-cyan-50"
@@ -278,7 +219,7 @@ export default function ProductosPage() {
             <CardDescription className="text-red-600">{error}</CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button onClick={fetchProductos} variant="destructive">
+            <Button onClick={refresh} variant="destructive">
               <RefreshCw className="w-4 h-4 mr-2" />
               Reintentar
             </Button>
@@ -304,7 +245,9 @@ export default function ProductosPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {sortedProductos.map((producto) => {
-                const mainImage = producto.imagenes.find((img) => img.esPrincipal) || producto.imagenes[0];
+                const mainImage =
+                  producto.imagenes?.find((img) => img.esPrincipal) ??
+                  producto.imagenes?.[0];
                 const gradient = getCardGradient(producto.id);
 
                 return (
@@ -364,7 +307,7 @@ export default function ProductosPage() {
                       </div>
 
                       {/* Categories */}
-                      {producto.categorias.length > 0 && (
+                      {producto.categorias && producto.categorias.length > 0 && (
                         <div className="flex flex-wrap gap-1 pt-2 border-t">
                           {producto.categorias.slice(0, 3).map((categoria) => (
                             <Badge
@@ -402,7 +345,7 @@ export default function ProductosPage() {
                       <div className="flex items-start gap-1 text-xs text-gray-700 pt-2 border-t">
                         <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
                         <span className="line-clamp-2">
-                          {producto.ubicacion.ciudad}, {producto.ubicacion.provincia}
+                          {producto.ubicacion.city}, {producto.ubicacion.state}
                         </span>
                       </div>
                     </CardContent>
@@ -410,7 +353,7 @@ export default function ProductosPage() {
                     {/* Card Footer */}
                     <CardFooter className="p-4 pt-0 flex items-center justify-between text-xs text-gray-600 border-t">
                       <span>ID: {producto.id}</span>
-                      <span>CP: {producto.ubicacion.codigoPostal}</span>
+                      <span>CP: {producto.ubicacion.postal_code}</span>
                     </CardFooter>
                   </Card>
                 );

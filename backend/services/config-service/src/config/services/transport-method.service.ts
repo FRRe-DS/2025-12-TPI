@@ -2,8 +2,10 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { isUUID } from 'class-validator';
 import { PrismaService, TransportMethod } from '@logistics/database';
 import { CreateTransportMethodDto } from '../dto/create-transport-method.dto';
 import { UpdateTransportMethodDto } from '../dto/update-transport-method.dto';
@@ -33,6 +35,9 @@ export class TransportMethodService {
    * Obtiene un método de transporte por ID
    */
   async findOne(id: string): Promise<TransportMethod> {
+    if (!isUUID(id)) {
+      throw new BadRequestException('Invalid UUID format');
+    }
     this.logger.log(`Obteniendo método de transporte con ID: ${id}`);
     const transportMethod = await this.prisma.transportMethod.findUnique({
       where: { id },
@@ -133,16 +138,17 @@ export class TransportMethodService {
   }
 
   /**
-   * Elimina un método de transporte
+   * Elimina (soft delete) un método de transporte
    */
-  async remove(id: string): Promise<void> {
-    this.logger.log(`Eliminando método de transporte con ID: ${id}`);
+  async remove(id: string): Promise<TransportMethod> {
+    this.logger.log(`Desactivando método de transporte con ID: ${id}`);
 
     // Verificar que existe
     await this.findOne(id);
 
-    await this.prisma.transportMethod.delete({
+    return this.prisma.transportMethod.update({
       where: { id },
+      data: { isActive: false },
     });
   }
 }

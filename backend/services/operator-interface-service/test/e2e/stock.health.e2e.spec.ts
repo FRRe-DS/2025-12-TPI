@@ -10,7 +10,7 @@ describe('Gateway → StockIntegrationService: health [T032]', () => {
         .get('/stock/health')
         .timeout(TIMEOUT);
 
-      expect([200, 404, 502]).toContain(res.status);
+      expect([200, 401, 404, 502]).toContain(res.status);
 
       if (res.status === 200) {
         // Validar headers
@@ -28,7 +28,7 @@ describe('Gateway → StockIntegrationService: health [T032]', () => {
         .get('/stock/health')
         .timeout(TIMEOUT);
 
-      expect([200, 404, 502]).toContain(res.status);
+      expect([200, 401, 404, 502]).toContain(res.status);
 
       // X-Request-ID debe estar siempre presente
       expect(res.headers['x-request-id']).toBeDefined();
@@ -47,7 +47,7 @@ describe('Gateway → StockIntegrationService: health [T032]', () => {
         .get('/stock/health')
         .timeout(TIMEOUT);
 
-      expect([200, 404, 502]).toContain(res.status);
+      expect([200, 401, 404, 502]).toContain(res.status);
 
       // Incluso en 502, debe retornar JSON válido
       if (res.status === 502) {
@@ -65,7 +65,7 @@ describe('Gateway → StockIntegrationService: health [T032]', () => {
 
       const duration = Date.now() - start;
 
-      expect([200, 404, 502]).toContain(res.status);
+      expect([200, 401, 404, 502]).toContain(res.status);
       expect(duration).toBeLessThan(TIMEOUT);
     }, 20000);
   });

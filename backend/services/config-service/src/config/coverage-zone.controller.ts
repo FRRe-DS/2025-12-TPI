@@ -86,19 +86,19 @@ export class CoverageZoneController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Eliminar (desactivar) una zona de cobertura' })
   @ApiParam({ name: 'id', description: 'ID de la zona de cobertura' })
   @ApiResponse({
-    status: 204,
+    status: 200,
     description: 'Zona de cobertura desactivada exitosamente',
   })
   @ApiResponse({
     status: 404,
     description: 'Zona de cobertura no encontrada',
   })
-  async remove(@Param('id') id: string): Promise<void> {
+  async remove(@Param('id') id: string): Promise<CoverageZone> {
     this.logger.log(`DELETE /config/coverage-zones/${id}`);
-    await this.coverageZoneService.remove(id);
+    return this.coverageZoneService.remove(id);
   }
 }

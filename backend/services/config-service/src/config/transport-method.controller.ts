@@ -92,18 +92,18 @@ export class TransportMethodController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar un método de transporte' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Eliminar (desactivar) un método de transporte' })
   @ApiParam({ name: 'id', description: 'ID del método de transporte' })
   @ApiResponse({
-    status: 204,
-    description: 'Método de transporte eliminado exitosamente',
+    status: 200,
+    description: 'Método de transporte desactivado exitosamente',
   })
   @ApiResponse({
     status: 404,
     description: 'Método de transporte no encontrado',
   })
-  async remove(@Param('id') id: string): Promise<void> {
+  async remove(@Param('id') id: string): Promise<TransportMethod> {
     this.logger.log(`DELETE /config/transport-methods/${id}`);
     return this.transportMethodService.remove(id);
   }

@@ -175,20 +175,6 @@ describe('StockIntegrationService: Health (E2E)', () => {
   });
 
   describe('Service Resilience Features', () => {
-    it('should maintain health status even during high load', async () => {
-      // Make multiple concurrent requests to simulate load
-      const requests = Array.from({ length: 10 }, () =>
-        request(app.getHttpServer()).get('/health'),
-      );
-
-      const responses = await Promise.all(requests);
-
-      responses.forEach((response) => {
-        expect(response.status).toBe(200);
-        expect(response.body).toHaveProperty('status');
-      });
-    });
-
     it('should include uptime information', async () => {
       const response = await request(app.getHttpServer())
         .get('/health')

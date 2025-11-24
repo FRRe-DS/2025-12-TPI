@@ -8,6 +8,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { DimensionesDto } from './producto-stock.dto';
 
 export enum EstadoReserva {
   CONFIRMADO = 'confirmado',
@@ -34,6 +35,16 @@ export class ReservaProductoDto {
   @ApiProperty({ description: 'Precio unitario', example: 150000 })
   @IsNumber()
   precioUnitario: number;
+
+  @ApiProperty({
+    description: 'Dimensiones del producto cuando están disponibles',
+    required: false,
+    type: DimensionesDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DimensionesDto)
+  dimensiones?: DimensionesDto;
 }
 
 export class ReservaStockDto {
@@ -63,23 +74,29 @@ export class ReservaStockDto {
   @ApiProperty({
     description: 'Fecha de expiración en formato ISO 8601',
     example: '2025-01-20T10:30:00Z',
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  expiresAt: string;
+  expiresAt?: string;
 
   @ApiProperty({
     description: 'Fecha de creación en formato ISO 8601',
     example: '2025-01-17T10:30:00Z',
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  fechaCreacion: string;
+  fechaCreacion?: string;
 
   @ApiProperty({
     description: 'Fecha de actualización en formato ISO 8601',
     example: '2025-01-17T10:30:00Z',
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  fechaActualizacion: string;
+  fechaActualizacion?: string;
 
   @ApiProperty({
     description: 'Productos en la reserva',

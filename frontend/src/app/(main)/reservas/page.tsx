@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ShoppingCart,
   Calendar,
@@ -43,47 +43,40 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-interface ReservaProducto {
-  idProducto: number;
-  nombre: string;
-  cantidad: number;
-  precioUnitario: number;
-  dimensiones?: {
-    largoCm: number;
-    anchoCm: number;
-    altoCm: number;
-  };
-}
-
-interface Reserva {
-  idReserva: number;
-  idCompra: string;
-  usuarioId: number;
-  estado: 'confirmado' | 'pendiente' | 'cancelado';
-  expiresAt?: string;
-  fechaCreacion?: string;
-  fechaActualizacion?: string;
-  productos?: ReservaProducto[];
-}
+import { useReservas } from '@/app/lib/middleware/stores/composables/useReservas';
+import type {
+  StockReserva,
+  StockReservaEstado,
+  StockReservaProducto,
+} from '@/app/lib/middleware/services/stock.service';
 
 type SortOption = 'idReserva' | 'fechaCreacion' | 'estado' | 'usuarioId' | 'idCompra';
 type SortDirection = 'asc' | 'desc';
 
+type Reserva = StockReserva;
+type ReservaProducto = StockReservaProducto;
+
 export default function ReservasPage() {
-  const [reservas, setReservas] = useState<Reserva[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const {
+    items: reservas,
+    isLoading,
+    error,
+    lastUpdatedAt,
+    updatingId,
+    refresh,
+    changeEstado,
+    cancelarReserva,
+    setError,
+    clearError,
+  } = useReservas();
   const [sortBy, setSortBy] = useState<SortOption>('idReserva');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [updatingReserva, setUpdatingReserva] = useState<number | null>(null);
   const [expandedProductos, setExpandedProductos] = useState<Set<number>>(new Set());
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     reserva: Reserva | null;
     action: 'confirmar' | 'cancelar' | 'pendiente' | null;
-    nuevoEstado: 'confirmado' | 'cancelado' | 'pendiente' | null;
+    nuevoEstado: StockReservaEstado | null;
   }>({ open: false, reserva: null, action: null, nuevoEstado: null });
 
   const toggleProductos = (idReserva: number) => {
@@ -98,202 +91,31 @@ export default function ReservasPage() {
     });
   };
 
-  const fetchReservas = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('https://comprasg5.mmalgor.com.ar/v1/reservas', {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
-      const rawData = await response.json();
-
-      // Mapear los datos de la API al formato esperado por el frontend
-      const mappedData = rawData.map((reserva: any) => ({
-        idReserva: reserva.idReserva,
-        idCompra: reserva.idCompra,
-        usuarioId: reserva.usuarioId,
-        estado: reserva.estado.toLowerCase(), // Convertir a minúsculas
-        expiresAt: reserva.expiraEn, // Mapear expiraEn a expiresAt
-        fechaCreacion: reserva.fechaCreacion,
-        fechaActualizacion: reserva.fechaActualizacion,
-        productos: reserva.items?.map((item: any) => {
-          const producto: ReservaProducto = {
-            idProducto: item.productoId,
-            nombre: item.nombre,
-            cantidad: item.cantidad,
-            precioUnitario: parseFloat(item.precioUnitario),
-          };
-
-          // Incluir dimensiones si están disponibles
-          if (item.producto?.dimensiones) {
-            const dims = item.producto.dimensiones;
-            producto.dimensiones = {
-              largoCm: parseFloat(dims.largoCm) || 0,
-              anchoCm: parseFloat(dims.anchoCm) || 0,
-              altoCm: parseFloat(dims.altoCm) || 0,
-            };
-          }
-
-          return producto;
-        }) || [],
-      }));
-
-      setReservas(mappedData);
-      setLastUpdate(new Date());
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al cargar reservas';
-      setError(message);
-      console.error('Error fetching reservas:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateReservaStatus = async (
+  const handleReservaUpdate = async (
     idReserva: number,
-    nuevoEstado: 'confirmado' | 'cancelado' | 'pendiente',
+    nuevoEstado: StockReservaEstado,
     usuarioId: number,
-    motivo?: string
+    motivo?: string,
   ) => {
     try {
-      const url = `https://comprasg5.mmalgor.com.ar/v1/reservas/${idReserva}`;
-
       if (nuevoEstado === 'cancelado') {
-        // Para cancelar, usamos DELETE con motivo
-        const body = {
-          motivo: motivo || 'Cancelación solicitada por el usuario',
-        };
-
-        console.log('Cancelando reserva:', {
-          url,
-          method: 'DELETE',
-          body,
-          bodyStringified: JSON.stringify(body),
-        });
-
-        const response = await fetch(url, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify(body),
-        });
-
-        if (!response.ok) {
-          let errorMessage = `Error ${response.status}: ${response.statusText}`;
-          let errorData: any = {};
-          
-          try {
-            const responseText = await response.text();
-            if (responseText) {
-              try {
-                errorData = JSON.parse(responseText);
-                errorMessage = errorData.message || errorData.details || errorData.error || errorMessage;
-              } catch {
-                // Si no es JSON, usar el texto directamente
-                errorMessage = responseText || errorMessage;
-              }
-            }
-          } catch (e) {
-            console.warn('No se pudo leer la respuesta del error:', e);
-          }
-          
-          console.error('Error al cancelar reserva:', {
-            status: response.status,
-            statusText: response.statusText,
-            url,
-            body,
-            errorData,
-            errorMessage,
-          });
-          
-          throw new Error(errorMessage || `Error ${response.status}: ${response.statusText}`);
-        }
+        await cancelarReserva(
+          idReserva,
+          motivo || 'Cancelación solicitada por el usuario',
+        );
       } else {
-        // Para cambiar a confirmado o pendiente, usamos PATCH con estado
-        // El enum de PostgreSQL espera valores en MAYÚSCULAS
-        const body = {
-          usuarioId: usuarioId,
-          estado: nuevoEstado.toUpperCase(),
-        };
-
-        console.log('Actualizando reserva:', {
-          url,
-          method: 'PATCH',
-          body,
-          bodyStringified: JSON.stringify(body),
-        });
-
-        const response = await fetch(url, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify(body),
-        });
-
-        if (!response.ok) {
-          let errorMessage = `Error ${response.status}: ${response.statusText}`;
-          let errorData: any = {};
-          
-          try {
-            const responseText = await response.text();
-            if (responseText) {
-              try {
-                errorData = JSON.parse(responseText);
-                errorMessage = errorData.message || errorData.details || errorData.error || errorMessage;
-              } catch {
-                // Si no es JSON, usar el texto directamente
-                errorMessage = responseText || errorMessage;
-              }
-            }
-          } catch (e) {
-            console.warn('No se pudo leer la respuesta del error:', e);
-          }
-          
-          console.error('Error al actualizar reserva:', {
-            status: response.status,
-            statusText: response.statusText,
-            url,
-            body,
-            errorData,
-            errorMessage,
-          });
-          
-          throw new Error(errorMessage || `Error ${response.status}: ${response.statusText}`);
-        }
+        await changeEstado(idReserva, usuarioId, nuevoEstado);
       }
-
-      // Actualizar la reserva en el estado local
-      setReservas(prevReservas =>
-        prevReservas.map(reserva =>
-          reserva.idReserva === idReserva
-            ? { ...reserva, estado: nuevoEstado, fechaActualizacion: new Date().toISOString() }
-            : reserva
-        )
-      );
-
-      return true;
+      setConfirmDialog({ open: false, reserva: null, action: null, nuevoEstado: null });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al actualizar reserva';
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Error al actualizar la reserva';
+      setError(message);
       console.error('Error updating reserva:', err);
-      throw new Error(message);
     }
   };
-
-  useEffect(() => {
-    fetchReservas();
-  }, []);
 
   const formatDate = (dateString: string | undefined | null): string => {
     if (!dateString) {
@@ -519,7 +341,7 @@ export default function ReservasPage() {
     }
   };
 
-  const handleChangeEstado = (reserva: Reserva, nuevoEstado: 'confirmado' | 'cancelado' | 'pendiente') => {
+  const handleChangeEstado = (reserva: Reserva, nuevoEstado: StockReservaEstado) => {
     const actionMap = {
       confirmado: 'confirmar',
       cancelado: 'cancelar',
@@ -538,28 +360,25 @@ export default function ReservasPage() {
     if (!confirmDialog.reserva || !confirmDialog.nuevoEstado) return;
 
     const { reserva, nuevoEstado } = confirmDialog;
-    setUpdatingReserva(reserva.idReserva);
-
-    try {
-      await updateReservaStatus(
-        reserva.idReserva,
-        nuevoEstado,
-        reserva.usuarioId,
-        nuevoEstado === 'cancelado' ? 'Cancelación solicitada por el usuario' : undefined
-      );
-
-      // Cerrar diálogo
-      setConfirmDialog({ open: false, reserva: null, action: null, nuevoEstado: null });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error al actualizar reserva';
-      setError(message);
-    } finally {
-      setUpdatingReserva(null);
-    }
+    await handleReservaUpdate(
+      reserva.idReserva,
+      nuevoEstado,
+      reserva.usuarioId,
+      nuevoEstado === 'cancelado'
+        ? 'Cancelación solicitada por el usuario'
+        : undefined,
+    );
   };
 
   // Función para determinar qué botones mostrar según el estado actual
-  const getAvailableActions = (estado: string): Array<{ estado: 'confirmado' | 'cancelado' | 'pendiente'; label: string; color: string; icon: React.ReactNode }> => {
+  const getAvailableActions = (
+    estado: string,
+  ): Array<{
+    estado: StockReservaEstado;
+    label: string;
+    color: string;
+    icon: React.ReactNode;
+  }> => {
     const actions = [];
 
     if (estado !== 'confirmado') {
@@ -623,9 +442,9 @@ export default function ReservasPage() {
             </h1>
             <p className="text-blue-50 mt-2">
               {reservas.length} {reservas.length === 1 ? 'reserva' : 'reservas'} en total
-              {lastUpdate && (
+              {lastUpdatedAt && (
                 <span className="ml-2 text-sm">
-                  (Actualizado: {lastUpdate.toLocaleTimeString('es-AR')})
+                  (Actualizado: {lastUpdatedAt.toLocaleTimeString('es-AR')})
                 </span>
               )}
             </p>
@@ -663,7 +482,7 @@ export default function ReservasPage() {
               </div>
             </div>
             <Button
-              onClick={fetchReservas}
+              onClick={refresh}
               disabled={isLoading}
               variant="secondary"
               className="bg-white text-blue-600 hover:bg-blue-50"
@@ -732,7 +551,7 @@ export default function ReservasPage() {
             <CardDescription className="text-red-600">{error}</CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button onClick={fetchReservas} variant="destructive">
+            <Button onClick={refresh} variant="destructive">
               <RefreshCw className="w-4 h-4 mr-2" />
               Reintentar
             </Button>
@@ -980,10 +799,10 @@ export default function ReservasPage() {
                                 size="sm"
                                 variant="default"
                                 onClick={() => handleChangeEstado(reserva, action.estado)}
-                                disabled={updatingReserva === reserva.idReserva}
+                                disabled={updatingId === reserva.idReserva}
                                 className={`h-8 px-3 text-xs font-medium ${action.color} min-w-[100px] flex items-center justify-center gap-1.5`}
                               >
-                                {updatingReserva === reserva.idReserva ? (
+                                {updatingId === reserva.idReserva ? (
                                   <>
                                     <Loader2 className="w-3 h-3 animate-spin" />
                                     <span>...</span>
@@ -1035,7 +854,7 @@ export default function ReservasPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={executeReservaAction}
-              disabled={updatingReserva !== null}
+          disabled={updatingId !== null}
               className={
                 confirmDialog.action === 'confirmar'
                   ? 'bg-green-600 hover:bg-green-700'
@@ -1044,7 +863,7 @@ export default function ReservasPage() {
                   : 'bg-yellow-600 hover:bg-yellow-700'
               }
             >
-              {updatingReserva !== null ? (
+          {updatingId !== null ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   Procesando...

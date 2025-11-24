@@ -71,7 +71,7 @@ export class TrackingController {
       const shipment = await this.shippingService.createShipping(createDto);
 
       return {
-        id: shipment.shipping_id, // UUID string
+        id: shipment.shipmentId,
         status: shipment.status,
         orderId: body.orderId,
         creationDate: new Date().toISOString(),
@@ -102,11 +102,12 @@ export class TrackingController {
       // Intentar buscar por ID (que es UUID en nuestro sistema)
       const shipment = await this.shippingService.getShippingDetail(id);
 
+      const parsedOrderId = Number(shipment.orderId);
       return {
-        id: shipment.shipping_id,
+        id: shipment.shipmentId,
         status: shipment.status,
-        orderId: shipment.order_id,
-        creationDate: shipment.created_at,
+        orderId: Number.isFinite(parsedOrderId) ? parsedOrderId : 0,
+        creationDate: shipment.createdAt,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {

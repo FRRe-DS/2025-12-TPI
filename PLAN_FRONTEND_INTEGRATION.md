@@ -64,3 +64,13 @@ NEXT_PUBLIC_API_URL=http://localhost:3004
 3. **Cotización**: Probar cotizar un envío con diferentes productos y métodos. Verificar que el precio cambia.
 4. **Crear Envío**: Completar el flujo de creación y verificar que devuelve un ID de envío y Tracking Number.
 5. **Tracking**: Usar el Tracking Number para consultar el estado.
+
+---
+
+## 6. Integración con Stock (Productos y Reservas)
+
+- [x] Crear `stock.service.ts` con wrappers sobre el gateway (`/stock/productos`, `/stock/reservas`, `PATCH/DELETE` de reservas).
+- [x] Implementar stores reactivos (`products.store.ts`, `reservas.store.ts`) para centralizar estado, errores y caching en memoria.
+- [x] Exponer hooks `useProductos()` y `useReservas()` para que las páginas lean del store en lugar de hacer `fetch` directo al API externo.
+- [x] Refactorizar `productos/page.tsx` y `reservas/page.tsx` para usar los hooks y mostrar `lastUpdatedAt` desde el store.
+- [x] Añadir pruebas E2E en el gateway (`stock.catalog.e2e.spec.ts`) para verificar que los nuevos endpoints proxied están disponibles y propagan errores adecuadamente.

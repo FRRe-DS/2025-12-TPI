@@ -163,7 +163,9 @@ model RouteStop {
 model Shipment {
   id                    String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orderId               Int              @map("order_id")
+  orderReference        String?          @map("order_reference") @db.VarChar(100)
   userId                Int              @map("user_id")
+  userReference         String?          @map("user_reference") @db.VarChar(100)
   trackingNumber        String           @unique @map("tracking_number") @db.VarChar(50)
 
   // Delivery address (campos desnormalizados para performance)
@@ -198,6 +200,8 @@ model Shipment {
 
   @@index([orderId], map: "idx_shipments_order")
   @@index([userId], map: "idx_shipments_user")
+  @@index([userReference], map: "idx_shipments_user_reference")
+  @@index([orderReference], map: "idx_shipments_order_reference")
   @@index([status], map: "idx_shipments_status")
   @@index([trackingNumber], map: "idx_shipments_tracking")
   @@index([createdAt], map: "idx_shipments_created_at")
@@ -208,6 +212,7 @@ model ShipmentProduct {
   id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   shipmentId  String    @map("shipment_id") @db.Uuid
   productId   Int       @map("product_id")
+  productReference String? @map("product_reference") @db.VarChar(100)
   quantity    Int
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
@@ -215,6 +220,7 @@ model ShipmentProduct {
 
   @@index([shipmentId], map: "idx_shipment_products_shipment")
   @@index([productId], map: "idx_shipment_products_product")
+  @@index([productReference], map: "idx_shipment_products_product_reference")
   @@map("shipment_products")
 }
 

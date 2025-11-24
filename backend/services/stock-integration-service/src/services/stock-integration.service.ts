@@ -11,8 +11,15 @@ import {
   ReservaStockDto,
   EstadoReserva,
   CreateReservaDto,
+  ReservaProductoDto,
 } from '../dto';
 import { IStockApiError } from '../interfaces/stock-api.interface';
+
+interface ListReservasOptions {
+  usuarioId?: number;
+  estado?: EstadoReserva;
+  idCompra?: string;
+}
 
 @Injectable()
 export class StockIntegrationService {
@@ -59,10 +66,11 @@ export class StockIntegrationService {
       const response = await this.makeRequestWithRetry(
         'GET',
         `/productos/${productId}`,
+        undefined,
         { headers: await this.getAuthHeaders() },
       );
 
-      const product = response.data;
+      const product = this.mapProductResponse(response.data);
       await this.cache.set(cacheKey, product);
       this.circuitBreaker.recordSuccess();
 
@@ -77,6 +85,99 @@ export class StockIntegrationService {
         error,
       );
       return this.getDefaultProduct(productId);
+    }
+  }
+
+  /**
+   * Lista todos los productos disponibles en Stock API
+   */
+  async listProducts(): Promise<ProductoStockDto[]> {
+    const cacheKey = this.cache.getProductsListKey();
+    const cached = await this.cache.get<ProductoStockDto[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    if (this.circuitBreaker.isOpen()) {
+      this.logger.warn(
+        'Circuit breaker is OPEN, returning cached/default product list',
+      );
+      return [];
+    }
+
+    try {
+      const response = await this.makeRequestWithRetry(
+        'GET',
+        '/productos',
+        undefined,
+        { headers: await this.getAuthHeaders() },
+      );
+      const rawProducts = Array.isArray(response.data)
+        ? response.data
+        : response.data?.productos ?? [];
+      const products = rawProducts.map((item: any) =>
+        this.mapProductResponse(item),
+      );
+      await this.cache.set(cacheKey, products);
+      this.circuitBreaker.recordSuccess();
+      return products;
+    } catch (error) {
+      this.circuitBreaker.recordFailure();
+      this.logger.error('Error listing products from Stock API', error);
+      return [];
+    }
+  }
+
+  /**
+   * Lista reservas con filtros opcionales
+   */
+  async listReservas(
+    options: ListReservasOptions = {},
+  ): Promise<ReservaStockDto[]> {
+    const cacheKey = this.getReservasCacheKey(options);
+    if (cacheKey) {
+      const cached = await this.cache.get<ReservaStockDto[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    if (this.circuitBreaker.isOpen()) {
+      this.logger.warn('Circuit breaker is OPEN, returning empty reservas list');
+      return [];
+    }
+
+    try {
+      const path = this.buildReservasPath(options);
+      const response = await this.makeRequestWithRetry(
+        'GET',
+        path,
+        undefined,
+        { headers: await this.getAuthHeaders() },
+      );
+
+      const rawReservas = Array.isArray(response.data)
+        ? response.data
+        : response.data?.reservas ?? [];
+
+      const reservas = rawReservas
+        .map((reserva: any) => this.mapReservaResponse(reserva))
+        .filter((reserva): reserva is ReservaStockDto => Boolean(reserva));
+
+      const filtered = options.idCompra
+        ? reservas.filter((r) => r.idCompra === options.idCompra)
+        : reservas;
+
+      if (cacheKey && !options.idCompra && !options.estado) {
+        await this.cache.set(cacheKey, filtered);
+      }
+
+      this.circuitBreaker.recordSuccess();
+      return filtered;
+    } catch (error) {
+      this.circuitBreaker.recordFailure();
+      this.logger.error('Error listing reservas from Stock API', error);
+      return [];
     }
   }
 
@@ -105,22 +206,18 @@ export class StockIntegrationService {
     }
 
     try {
-      // 1. Listar todas las reservas del usuario
-      const response = await this.makeRequestWithRetry(
-        'GET',
-        `/reservas?usuarioId=${userId}`,
-        { headers: await this.getAuthHeaders() },
-      );
-
-      const reservas = response.data;
-      // 2. Buscar la reserva que coincida con el idCompra
-      const reserva = reservas.find(
-        (r: ReservaStockDto) => r.idCompra === compraId,
-      );
+      const reservas = await this.listReservas({
+        usuarioId: userId,
+        idCompra: compraId,
+      });
+      const reserva = reservas[0] ?? null;
 
       if (reserva) {
-        // 3. Guardar en caché usando idCompra como clave
         await this.cache.set(cacheKey, reserva);
+        await this.cache.set(
+          this.cache.getReservaByIdKey(reserva.idReserva, userId),
+          reserva,
+        );
         this.logger.log(
           `Reserva found for compraId: ${compraId}, reservaId: ${reserva.idReserva}`,
         );
@@ -130,15 +227,13 @@ export class StockIntegrationService {
         );
       }
 
-      this.circuitBreaker.recordSuccess();
-      return reserva || null;
+      return reserva;
     } catch (error) {
-      this.circuitBreaker.recordFailure();
       this.logger.error(
         `Error retrieving reserva for compraId: ${compraId}`,
         error,
       );
-      return null;
+      throw error;
     }
   }
 
@@ -170,13 +265,20 @@ export class StockIntegrationService {
       const response = await this.makeRequestWithRetry(
         'GET',
         `/reservas/${reservaId}?usuarioId=${userId}`,
+        undefined,
         { headers: await this.getAuthHeaders() },
       );
 
-      const reserva = response.data;
+      const reserva = this.mapReservaResponse(response.data);
 
       if (reserva) {
         await this.cache.set(cacheKey, reserva);
+        if (reserva.idCompra) {
+          await this.cache.set(
+            this.cache.getReservaByCompraKey(reserva.idCompra, userId),
+            reserva,
+          );
+        }
         this.logger.log(
           `Reserva ${reservaId} retrieved successfully from Stock API`,
         );
@@ -218,12 +320,24 @@ export class StockIntegrationService {
         { headers: await this.getAuthHeaders() },
       );
 
-      const reserva = response.data;
+      const reserva = this.mapReservaResponse(response.data);
 
-      // Invalidar caché usando idCompra (si lo tenemos)
-      if (reserva.idCompra) {
-        await this.cache.delete(
-          this.cache.getReservaByCompraKey(reserva.idCompra, userId),
+      await this.invalidateReservaListCaches(userId);
+
+      if (reserva) {
+        await this.cache.set(
+          this.cache.getReservaByIdKey(reservaId, userId),
+          reserva,
+        );
+        if (reserva.idCompra) {
+          await this.cache.set(
+            this.cache.getReservaByCompraKey(reserva.idCompra, userId),
+            reserva,
+          );
+        }
+      } else {
+        throw new Error(
+          `Stock API did not return reserva data for ${reservaId}`,
         );
       }
 
@@ -296,22 +410,29 @@ export class StockIntegrationService {
         { headers: await this.getAuthHeaders() },
       );
 
-      const reserva = response.data;
+      const reserva = this.mapReservaResponse(response.data);
       this.circuitBreaker.recordSuccess();
-      this.logger.log(`Reserva creada exitosamente: ${reserva.idReserva}`);
+      this.logger.log(
+        `Reserva creada exitosamente: ${reserva?.idReserva ?? 'desconocido'}`,
+      );
 
-      // Guardar en caché
-      if (reserva.idReserva) {
+      await this.invalidateReservaListCaches(dto.usuarioId);
+
+      if (reserva?.idReserva) {
         await this.cache.set(
           this.cache.getReservaByIdKey(reserva.idReserva, dto.usuarioId),
           reserva,
         );
       }
-      if (reserva.idCompra) {
+      if (reserva?.idCompra) {
         await this.cache.set(
           this.cache.getReservaByCompraKey(reserva.idCompra, dto.usuarioId),
           reserva,
         );
+      }
+
+      if (!reserva) {
+        throw new Error('Stock API did not return reserva data');
       }
 
       return reserva;
@@ -342,8 +463,7 @@ export class StockIntegrationService {
       this.circuitBreaker.recordSuccess();
       this.logger.log(`Reserva ${reservaId} cancelada exitosamente`);
 
-      // Invalidar caché (no tenemos usuarioId fácil aquí, idealmente deberíamos pasarlo o invalidar por patrón si es posible)
-      // Como mejora futura, podríamos requerir userId para cancelar o buscar la reserva primero
+      await this.invalidateReservaListCaches();
     } catch (error) {
       this.circuitBreaker.recordFailure();
       this.logger.error(`Error cancelling reserva ${reservaId}`, error);
@@ -413,12 +533,217 @@ export class StockIntegrationService {
    * Obtiene headers de autenticación
    */
   private async getAuthHeaders(): Promise<Record<string, string>> {
-    // TODO: Implementar obtención de token JWT desde Keycloak
-    // Por ahora retornamos headers básicos
+    const staticToken =
+      this.configService.get<string>('STOCK_API_BEARER_TOKEN') ||
+      process.env.STOCK_API_BEARER_TOKEN;
+
+    if (staticToken) {
+      return {
+        Authorization: `Bearer ${staticToken}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      };
+    }
+
+    this.logger.warn(
+      'STOCK_API_BEARER_TOKEN no configurado, usando token mock para Stock API',
+    );
+
     return {
-      Authorization: 'Bearer mock-token', // Temporal
+      Authorization: 'Bearer mock-token',
       'Content-Type': 'application/json',
+      Accept: 'application/json',
     };
+  }
+
+  private mapProductResponse(raw: any): ProductoStockDto {
+    if (!raw) {
+      return this.getDefaultProduct(Date.now());
+    }
+
+    const dimensionesSource =
+      raw.dimensiones ||
+      raw.producto?.dimensiones || {
+        largoCm: 0,
+        anchoCm: 0,
+        altoCm: 0,
+      };
+
+    const ubicacionSource =
+      raw.ubicacion ||
+      raw.ubicacionAlmacen ||
+      raw.location || {
+        street: 'Sin calle',
+        city: 'Sin ciudad',
+        state: 'Sin provincia',
+        postal_code: 'H0000AAA',
+        country: 'Argentina',
+      };
+
+    return {
+      id: this.asNumber(raw.id ?? raw.productoId ?? Date.now()),
+      nombre: raw.nombre ?? raw.name ?? 'Producto sin nombre',
+      descripcion: raw.descripcion ?? raw.description,
+      precio: this.asNumber(raw.precio ?? raw.precioUnitario ?? 0),
+      stockDisponible: this.asNumber(raw.stockDisponible ?? raw.stock ?? 0),
+      pesoKg: this.asNumber(raw.pesoKg ?? raw.peso ?? 0),
+      dimensiones: {
+        largoCm: this.asNumber(
+          dimensionesSource?.largoCm ?? dimensionesSource?.largo ?? 0,
+        ),
+        anchoCm: this.asNumber(
+          dimensionesSource?.anchoCm ?? dimensionesSource?.ancho ?? 0,
+        ),
+        altoCm: this.asNumber(
+          dimensionesSource?.altoCm ?? dimensionesSource?.alto ?? 0,
+        ),
+      },
+      ubicacion: {
+        street: ubicacionSource?.street ?? ubicacionSource?.calle ?? 'Sin calle',
+        city: ubicacionSource?.city ?? ubicacionSource?.ciudad ?? 'Sin ciudad',
+        state:
+          ubicacionSource?.state ?? ubicacionSource?.provincia ?? 'Sin provincia',
+        postal_code:
+          ubicacionSource?.postal_code ??
+          ubicacionSource?.codigoPostal ??
+          'H0000AAA',
+        country:
+          ubicacionSource?.country ?? ubicacionSource?.pais ?? 'Argentina',
+      },
+      imagenes: Array.isArray(raw.imagenes)
+        ? raw.imagenes.map((imagen: any) => ({
+            url: imagen.url ?? '',
+            esPrincipal: Number(
+              typeof imagen.esPrincipal === 'boolean'
+                ? imagen.esPrincipal
+                : imagen.esPrincipal ?? 0,
+            ),
+          }))
+        : undefined,
+      categorias: Array.isArray(raw.categorias)
+        ? raw.categorias.map((categoria: any) => ({
+            id: this.asNumber(categoria.id ?? Date.now()),
+            nombre: categoria.nombre ?? 'Sin categoría',
+            descripcion: categoria.descripcion,
+          }))
+        : undefined,
+    };
+  }
+
+  private mapReservaResponse(raw: any): ReservaStockDto | null {
+    if (!raw) {
+      return null;
+    }
+
+    const productos = Array.isArray(raw.items)
+      ? raw.items.map((item: any) => this.mapReservaProducto(item))
+      : [];
+
+    return {
+      idReserva: this.asNumber(raw.idReserva ?? raw.id ?? Date.now()),
+      idCompra: raw.idCompra ?? raw.compraId ?? '',
+      usuarioId: this.asNumber(raw.usuarioId ?? raw.userId ?? 0),
+      estado: this.normalizeEstado(raw.estado),
+      expiresAt: this.normalizeIsoDate(raw.expiraEn ?? raw.expiresAt),
+      fechaCreacion: this.normalizeIsoDate(
+        raw.fechaCreacion ?? raw.createdAt ?? raw.fechaCreado,
+      ),
+      fechaActualizacion: this.normalizeIsoDate(
+        raw.fechaActualizacion ?? raw.updatedAt ?? raw.fechaActualizado,
+      ),
+      productos,
+    };
+  }
+
+  private mapReservaProducto(item: any): ReservaProductoDto {
+    const dimensionesSource =
+      item.dimensiones || item.producto?.dimensiones || null;
+
+    const producto: ReservaProductoDto = {
+      idProducto: this.asNumber(item.productoId ?? item.idProducto ?? item.id),
+      nombre: item.nombre ?? item.producto?.nombre ?? 'Producto sin nombre',
+      cantidad: this.asNumber(item.cantidad ?? item.quantity ?? 0),
+      precioUnitario: this.asNumber(
+        item.precioUnitario ?? item.precio ?? item.producto?.precio ?? 0,
+      ),
+    };
+
+    if (dimensionesSource) {
+      producto.dimensiones = {
+        largoCm: this.asNumber(
+          dimensionesSource.largoCm ?? dimensionesSource.largo ?? 0,
+        ),
+        anchoCm: this.asNumber(
+          dimensionesSource.anchoCm ?? dimensionesSource.ancho ?? 0,
+        ),
+        altoCm: this.asNumber(
+          dimensionesSource.altoCm ?? dimensionesSource.alto ?? 0,
+        ),
+      };
+    }
+
+    return producto;
+  }
+
+  private normalizeEstado(estado: string | undefined): EstadoReserva {
+    const normalized = (estado || '').toLowerCase();
+    switch (normalized) {
+      case EstadoReserva.CONFIRMADO:
+        return EstadoReserva.CONFIRMADO;
+      case EstadoReserva.CANCELADO:
+        return EstadoReserva.CANCELADO;
+      default:
+        return EstadoReserva.PENDIENTE;
+    }
+  }
+
+  private asNumber(value: any, fallback = 0): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private normalizeIsoDate(value?: string): string | undefined {
+    if (!value) {
+      return undefined;
+    }
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toISOString();
+  }
+
+  private getReservasCacheKey(
+    options: ListReservasOptions,
+  ): string | null {
+    if (options.idCompra || options.estado) {
+      return null;
+    }
+    if (typeof options.usuarioId === 'number') {
+      return this.cache.getReservasListKey(options.usuarioId);
+    }
+    return this.cache.getReservasListKey();
+  }
+
+  private buildReservasPath(options: ListReservasOptions): string {
+    const params = new URLSearchParams();
+    if (typeof options.usuarioId === 'number') {
+      params.set('usuarioId', String(options.usuarioId));
+    }
+    if (options.estado) {
+      params.set('estado', options.estado.toUpperCase());
+    }
+    if (options.idCompra) {
+      params.set('idCompra', options.idCompra);
+    }
+    const query = params.toString();
+    return query ? `/reservas?${query}` : '/reservas';
+  }
+
+  private async invalidateReservaListCaches(
+    userId?: number,
+  ): Promise<void> {
+    await this.cache.delete(this.cache.getReservasListKey());
+    if (typeof userId === 'number') {
+      await this.cache.delete(this.cache.getReservasListKey(userId));
+    }
   }
 
   /**

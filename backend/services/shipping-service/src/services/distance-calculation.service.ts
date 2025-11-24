@@ -168,10 +168,12 @@ export class DistanceCalculationService {
   ): Promise<number> {
     const from = this.getCoordinatesForPostalCode(fromPostalCode);
     const to = this.getCoordinatesForPostalCode(toPostalCode);
-    if (!from || !to)
-      throw new Error(
-        `No coordinates found for postal codes: ${fromPostalCode} or ${toPostalCode}`,
+    if (!from || !to) {
+      this.logger.warn(
+        `No coordinates found for postal codes: ${fromPostalCode} or ${toPostalCode}. Using default distance.`,
       );
+      return 500; // distancia por defecto para mantener operatividad
+    }
     const meters = getDistance(
       { latitude: from.lat, longitude: from.lon },
       { latitude: to.lat, longitude: to.lon },
@@ -182,13 +184,28 @@ export class DistanceCalculationService {
   private getCoordinatesForPostalCode(
     postalCode: string,
   ): { lat: number; lon: number } | null {
-    if (this.postalCodeCoordinates[postalCode])
-      return this.postalCodeCoordinates[postalCode];
-    const prefix = postalCode.substring(0, 5);
+    const normalized = postalCode?.toUpperCase() ?? '';
+    if (this.postalCodeCoordinates[normalized])
+      return this.postalCodeCoordinates[normalized];
+
+    const prefix = normalized.substring(0, 5);
     for (const [code, coords] of Object.entries(this.postalCodeCoordinates)) {
-      if (code.startsWith(prefix))
+      if (code.startsWith(prefix)) {
         return coords as { lat: number; lon: number };
+      }
     }
+
+    const regionLetter = normalized.charAt(0);
+    if (regionLetter) {
+      for (const [code, coords] of Object.entries(
+        this.postalCodeCoordinates,
+      )) {
+        if (code.startsWith(regionLetter)) {
+          return coords as { lat: number; lon: number };
+        }
+      }
+    }
+
     this.logger.warn(`No coordinates found for postal code: ${postalCode}`);
     return null;
   }

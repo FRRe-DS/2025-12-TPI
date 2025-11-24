@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
+import { isUUID } from 'class-validator';
 import { PrismaService, CoverageZone } from '@logistics/database';
 import { CreateCoverageZoneDto } from '../dto/create-coverage-zone.dto';
 import { UpdateCoverageZoneDto } from '../dto/update-coverage-zone.dto';
@@ -23,6 +29,9 @@ export class CoverageZoneService {
    * Obtiene una zona de cobertura por ID
    */
   async findOne(id: string): Promise<CoverageZone> {
+    if (!isUUID(id)) {
+      throw new BadRequestException('Invalid UUID format');
+    }
     this.logger.log(`Obteniendo zona de cobertura con ID: ${id}`);
     const zone = await this.prisma.coverageZone.findUnique({
       where: { id },

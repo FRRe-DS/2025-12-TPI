@@ -1,4 +1,14 @@
-import { Controller, Get } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Options,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PrismaService } from '@logistics/database';
 
@@ -33,12 +43,54 @@ export class HealthController {
     return {
       status: databaseHealthy ? 'ok' : 'unhealthy',
       timestamp,
-      service: 'Shipping Service',
+      service: 'shipping-service',
       version: '1.0.0',
       environment,
       dependencies: {
         database: databaseHealthy ? 'healthy' : 'unhealthy',
+        configService: 'unknown',
+        stockService: 'unknown',
       },
     };
+  }
+
+  private methodNotAllowedResponse() {
+    return {
+      statusCode: HttpStatus.METHOD_NOT_ALLOWED,
+      status: 'method_not_allowed',
+      service: 'shipping-service',
+      timestamp: new Date().toISOString(),
+      message: 'Use GET /health for health status information',
+    };
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.METHOD_NOT_ALLOWED)
+  handlePost() {
+    return this.methodNotAllowedResponse();
+  }
+
+  @Put()
+  @HttpCode(HttpStatus.METHOD_NOT_ALLOWED)
+  handlePut() {
+    return this.methodNotAllowedResponse();
+  }
+
+  @Patch()
+  @HttpCode(HttpStatus.METHOD_NOT_ALLOWED)
+  handlePatch() {
+    return this.methodNotAllowedResponse();
+  }
+
+  @Delete()
+  @HttpCode(HttpStatus.METHOD_NOT_ALLOWED)
+  handleDelete() {
+    return this.methodNotAllowedResponse();
+  }
+
+  @Options()
+  @HttpCode(HttpStatus.METHOD_NOT_ALLOWED)
+  handleOptions() {
+    return this.methodNotAllowedResponse();
   }
 }

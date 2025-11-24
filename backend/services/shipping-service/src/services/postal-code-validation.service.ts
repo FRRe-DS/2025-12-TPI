@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { normalizePostalCodeInput } from '@logistics/types';
 
 @Injectable()
 export class PostalCodeValidationService {
@@ -8,17 +9,28 @@ export class PostalCodeValidationService {
   validate(postalCode: string): {
     isValid: boolean;
     formatted?: string;
+    numeric?: string;
     errors: string[];
   } {
     const errors: string[] = [];
     if (!postalCode || !postalCode.trim()) {
       return { isValid: false, errors: ['Postal code is required'] };
     }
-    const cleaned = postalCode.trim().toUpperCase();
-    if (cleaned.length !== 8)
-      errors.push('Postal code must be exactly 8 characters');
-    if (!this.cpaPattern.test(cleaned))
-      errors.push('Invalid CPA format (e.g., H3500ABC)');
-    return { isValid: errors.length === 0, formatted: cleaned, errors };
+    const normalized = normalizePostalCodeInput(postalCode);
+
+    if (!normalized || !this.cpaPattern.test(normalized)) {
+      errors.push('Invalid postal code format (expected CPA or 4 digits)');
+      this.logger.warn(
+        `Postal code validation failed for value: ${postalCode}`,
+      );
+    }
+
+    return {
+      isValid: errors.length === 0,
+      formatted: errors.length === 0 ? normalized : undefined,
+      numeric:
+        errors.length === 0 ? normalized?.substring(1, 5) ?? undefined : undefined,
+      errors,
+    };
   }
 }
