@@ -37,14 +37,30 @@ export default function AuthCallbackPage() {
           setError('Error al procesar la autenticación');
         };
 
-        // Inicializar Keycloak con 'check-sso' para procesar el callback
-        // En el callback, Keycloak procesará automáticamente el código de autorización
+        // En el callback, Keycloak debe procesar el código de autorización
+        // Usamos 'login-required' aquí para forzar el procesamiento del callback
+        // o 'check-sso' si ya hay una sesión activa
         const authenticated = await keycloak.init({
-          onLoad: 'check-sso',
+          onLoad: 'check-sso', // Procesará el callback automáticamente si hay código de autorización
           pkceMethod: false,
           checkLoginIframe: false,
           enableLogging: true,
+          // Asegurar que use el redirectUri correcto
+          redirectUri: `${window.location.origin}/auth/callback`,
         });
+        
+        // Si aún no está autenticado después del init, puede que necesitemos procesar el callback manualmente
+        // Keycloak debería haber procesado el código automáticamente, pero verificamos
+        if (!authenticated && !keycloak.token) {
+          // Intentar procesar el callback manualmente revisando la URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const code = urlParams.get('code');
+          if (code) {
+            console.log('🔐 Código de autorización encontrado en URL, Keycloak debería procesarlo automáticamente');
+            // Esperar un poco más para que Keycloak procese
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
 
         console.log('🔐 Keycloak init en callback - authenticated:', authenticated, 'token:', keycloak.token ? 'presente' : 'ausente');
 
