@@ -48,16 +48,27 @@ export default function AuthCallbackPage() {
           url: window.location.href.substring(0, 100) // Primeros 100 caracteres para no exponer token
         });
         
-        // En el callback, Keycloak procesará automáticamente el código de autorización
-        // cuando se inicializa, independientemente del onLoad
-        // Usamos 'check-sso' pero Keycloak detectará el código y lo procesará
-        const authenticated = await keycloak.init({
-          onLoad: 'check-sso', // Keycloak procesará automáticamente el código si está en la URL
+        // Si hay un código de autorización en la URL, Keycloak debe procesarlo automáticamente
+        // NO usar 'check-sso' porque no procesa el código, usar undefined o no especificar onLoad
+        const initOptions: any = {
           pkceMethod: false,
           checkLoginIframe: false,
           enableLogging: true,
           redirectUri: `${window.location.origin}/auth/callback`,
-        });
+        };
+        
+        // Si hay código, dejar que Keycloak lo procese automáticamente (sin onLoad)
+        // Si no hay código, usar check-sso para verificar sesión existente
+        if (code) {
+          console.log('🔐 Código de autorización detectado, procesando...');
+          // No especificar onLoad para que Keycloak procese el código automáticamente
+          initOptions.onLoad = undefined;
+        } else {
+          console.log('🔐 Sin código, verificando sesión existente...');
+          initOptions.onLoad = 'check-sso';
+        }
+        
+        const authenticated = await keycloak.init(initOptions);
         
         console.log('🔐 Después de init - authenticated:', authenticated, 'token:', keycloak.token ? 'presente' : 'ausente', 'code:', code ? 'presente' : 'ausente');
 
@@ -65,13 +76,15 @@ export default function AuthCallbackPage() {
         let finalAuthenticated = authenticated;
         let finalToken = keycloak.token;
         
-        if (code && !finalToken && !authenticated) {
+        // Si hay código de autorización, Keycloak debería procesarlo automáticamente
+        // Pero puede tomar un momento, así que hacemos polling
+        if (code && !finalToken) {
           console.log('⏳ Código de autorización encontrado, esperando procesamiento...');
-          // Polling cada 500ms hasta obtener token o timeout (3 segundos)
-          for (let i = 0; i < 6; i++) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            if (keycloak.token) {
-              console.log(`✅ Token obtenido después de ${(i + 1) * 500}ms`);
+          // Polling cada 300ms hasta obtener token o timeout (5 segundos)
+          for (let i = 0; i < 17; i++) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            if (keycloak.token && keycloak.authenticated) {
+              console.log(`✅ Token obtenido después de ${(i + 1) * 300}ms`);
               finalToken = keycloak.token;
               finalAuthenticated = true;
               break;
@@ -79,14 +92,23 @@ export default function AuthCallbackPage() {
           }
           
           if (!finalToken) {
-            console.warn('⚠️ Token no disponible después de esperar 3 segundos');
+            console.warn('⚠️ Token no disponible después de esperar 5 segundos');
+            // Intentar forzar el procesamiento del código
+            try {
+              await keycloak.login({
+                redirectUri: `${window.location.origin}/auth/callback`,
+              });
+              return; // keycloak.login() redirigirá, así que salimos
+            } catch (err) {
+              console.error('❌ Error al intentar login:', err);
+            }
           }
         }
 
         // Verificar nuevamente antes de decidir (por si acaso)
         if (!finalToken && keycloak.token) {
           finalToken = keycloak.token;
-          finalAuthenticated = true;
+          finalAuthenticated = keycloak.authenticated;
           console.log('✅ Token detectado en verificación final');
         }
 
@@ -94,25 +116,34 @@ export default function AuthCallbackPage() {
 
         if (finalAuthenticated && finalToken) {
           console.log('✅ Token obtenido en callback, guardando...');
+          
+          // Guardar token múltiples veces para asegurar que se persista
           authStore.setToken(finalToken);
+          localStorage.setItem('auth_token', finalToken);
           
           // Verificar que el token se guardó correctamente
           const savedToken = authStore.getToken() || localStorage.getItem('auth_token');
-          if (!savedToken) {
+          if (!savedToken || savedToken !== finalToken) {
             console.warn('⚠️ Token no se guardó correctamente, intentando nuevamente...');
             authStore.setToken(finalToken);
             localStorage.setItem('auth_token', finalToken);
           }
           
+          console.log('✅ Token guardado:', {
+            enStore: !!authStore.getToken(),
+            enLocalStorage: !!localStorage.getItem('auth_token'),
+            tokenLength: finalToken.length
+          });
+          
           // Esperar un poco más para asegurar que todo se guardó
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Limpiar parámetros de la URL para evitar problemas
           if (code || state) {
             window.history.replaceState({}, document.title, '/auth/callback');
           }
           
-          console.log('✅ Token guardado correctamente, redirigiendo al dashboard');
+          console.log('✅ Redirigiendo al dashboard');
           setIsProcessing(false);
           // Usar window.location en lugar de router.push para forzar recarga completa
           window.location.href = '/dashboard';
@@ -123,11 +154,14 @@ export default function AuthCallbackPage() {
             finalAuthenticated, 
             hasToken: !!keycloak.token, 
             hasCode: !!code,
-            hasState: !!state
+            hasState: !!state,
+            keycloakAuthenticated: keycloak.authenticated
           });
           setIsProcessing(false);
           // Redirigir al login para intentar nuevamente
-          router.push('/');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
         }
       } catch (error) {
         console.error('❌ Error en callback:', error);
