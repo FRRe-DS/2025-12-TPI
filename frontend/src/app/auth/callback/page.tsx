@@ -37,13 +37,14 @@ export default function AuthCallbackPage() {
           setError('Error al procesar la autenticación');
         };
 
-        // Verificar si hay código de autorización en la URL
+        // Verificar parámetros de callback en la URL ANTES de inicializar Keycloak
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
-        const hasCallbackCode = !!code;
+        const state = urlParams.get('state');
         
         console.log('🔐 Verificando callback:', { 
-          hasCode: hasCallbackCode,
+          hasCode: !!code,
+          hasState: !!state,
           url: window.location.href.substring(0, 100) // Primeros 100 caracteres para no exponer token
         });
         
@@ -58,17 +59,7 @@ export default function AuthCallbackPage() {
           redirectUri: `${window.location.origin}/auth/callback`,
         });
         
-        // Verificar parámetros de callback en la URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const state = urlParams.get('state');
-        
-        console.log('🔐 Parámetros en callback:', { 
-          code: code ? 'presente' : 'ausente', 
-          state: state ? 'presente' : 'ausente',
-          authenticated,
-          hasToken: !!keycloak.token
-        });
+        console.log('🔐 Después de init - authenticated:', authenticated, 'token:', keycloak.token ? 'presente' : 'ausente', 'code:', code ? 'presente' : 'ausente');
 
         // Si hay código pero no hay token, esperar un poco más (Keycloak puede estar procesando)
         let finalAuthenticated = authenticated;
