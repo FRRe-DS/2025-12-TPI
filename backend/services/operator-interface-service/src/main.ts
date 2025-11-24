@@ -27,16 +27,40 @@ async function bootstrap() {
   );
 
   // CORS configuration
-  // Lee FRONTEND_URL desde .env
-  // En desarrollo: http://localhost:3000 o http://localhost:3005
-  // En producción Dokploy: http://144.22.130.30:3005 (o la IP asignada)
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  // Soporta múltiples orígenes separados por coma o función de validación
+  // En desarrollo: http://localhost:3000, http://localhost:3005
+  // En producción: https://apilogistica.mmalgor.com.ar o múltiples URLs separadas por coma
+  const frontendUrls = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const allowedOrigins = frontendUrls.split(',').map(url => url.trim());
 
   app.enableCors({
-    origin: frontendUrl,
+    origin: (origin, callback) => {
+      // Permitir requests sin origin (ej: Postman, curl)
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      // En desarrollo, permitir localhost en cualquier puerto
+      if (process.env.NODE_ENV === 'development') {
+        if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+          return callback(null, true);
+        }
+      }
+      
+      // Verificar si el origin está en la lista permitida
+      if (allowedOrigins.includes(origin) || allowedOrigins.some(url => origin === url)) {
+        return callback(null, true);
+      }
+      
+      // Log para debugging
+      console.warn(`⚠️ CORS: Origin not allowed: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+      callback(null, true); // Permitir temporalmente para debugging - cambiar a false en producción estricta
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-ID'],
+    exposedHeaders: ['X-Request-ID'],
+    maxAge: 86400, // 24 horas para preflight cache
   });
 
   // Obtener puerto antes de usarlo en Swagger

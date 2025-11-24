@@ -85,6 +85,14 @@ export class ProxyController {
       return next();
     }
 
+    // Manejar OPTIONS (preflight) directamente sin proxyear
+    // Esto asegura que CORS funcione incluso si los servicios backend están caídos
+    if (method === 'OPTIONS') {
+      this.logger.log(`✅ CORS Preflight: ${path}`);
+      // NestJS CORS middleware ya maneja esto, pero lo confirmamos explícitamente
+      return res.status(200).end();
+    }
+
     this.logger.log(`🔄 Proxy: ${method} ${path}`);
 
     try {
