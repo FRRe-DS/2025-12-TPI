@@ -98,8 +98,8 @@ export default function ProductosPage() {
         bValue = b.nombre.toLowerCase();
         break;
       case 'precio':
-        aValue = parseFloat(a.precio) || 0;
-        bValue = parseFloat(b.precio) || 0;
+        aValue = a.precio || 0;
+        bValue = b.precio || 0;
         break;
       case 'stock':
         aValue = a.stockDisponible;
