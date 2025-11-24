@@ -66,15 +66,17 @@ export class HttpClient {
           }
         }
         
-        // Si no hay token y no es una ruta pública, redirigir al login
+        // Si no hay token y no es una ruta pública, NO hacer el request pero NO redirigir
+        // La redirección se maneja en el interceptor de response cuando recibimos 401
+        // Esto evita loops infinitos de redirección
         if (!token && !isPublicRoute && typeof window !== 'undefined') {
           const currentPath = window.location.pathname;
-          // No redirigir si ya estamos en la página de login o callback
+          // Solo rechazar el request si NO estamos en login o callback
+          // Pero NO redirigir aquí para evitar loops
           if (!currentPath.startsWith('/auth') && currentPath !== '/') {
-            console.warn('⚠️ No token found for protected route, redirecting to login...');
-            window.location.href = '/';
-            // Rechazar el request para evitar que se ejecute
-            return Promise.reject(new Error('No token available, redirecting to login'));
+            console.warn('⚠️ No token found for protected route, request will fail with 401');
+            // NO redirigir aquí - dejar que el interceptor de response maneje el 401
+            // Esto evita loops infinitos
           }
         }
         

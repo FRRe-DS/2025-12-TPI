@@ -96,17 +96,26 @@ export default function AuthCallbackPage() {
           console.log('✅ Token obtenido en callback, guardando...');
           authStore.setToken(finalToken);
           
-          // Pequeño delay para asegurar que el token se guardó
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Verificar que el token se guardó correctamente
+          const savedToken = authStore.getToken() || localStorage.getItem('auth_token');
+          if (!savedToken) {
+            console.warn('⚠️ Token no se guardó correctamente, intentando nuevamente...');
+            authStore.setToken(finalToken);
+            localStorage.setItem('auth_token', finalToken);
+          }
+          
+          // Esperar un poco más para asegurar que todo se guardó
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
           // Limpiar parámetros de la URL para evitar problemas
           if (code || state) {
             window.history.replaceState({}, document.title, '/auth/callback');
           }
           
-          console.log('✅ Redirigiendo al dashboard');
+          console.log('✅ Token guardado correctamente, redirigiendo al dashboard');
           setIsProcessing(false);
-          router.push('/dashboard');
+          // Usar window.location en lugar de router.push para forzar recarga completa
+          window.location.href = '/dashboard';
         } else {
           console.warn('⚠️ No se pudo obtener token en callback');
           console.warn('⚠️ Estado:', { 
