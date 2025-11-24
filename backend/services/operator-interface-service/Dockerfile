@@ -54,26 +54,19 @@ COPY backend/tsconfig.json ./backend/
 
 # Copiar package.json de todos los paquetes necesarios
 COPY backend/shared/types/package.json ./backend/shared/types/
-COPY backend/shared/utils/package.json ./backend/shared/utils/
-COPY backend/shared/database/package.json ./backend/shared/database/
 COPY ${SERVICE_PATH}/package.json ./${SERVICE_PATH}/
 
-# Copiar código fuente de shared packages (dependencias workspace)
+# Copiar código fuente de shared/types (dependencia)
 COPY backend/shared/types ./backend/shared/types
-COPY backend/shared/utils ./backend/shared/utils
-COPY backend/shared/database ./backend/shared/database
 
 # Copiar código fuente del servicio
 COPY ${SERVICE_PATH} ./${SERVICE_PATH}
 
 # Instalar dependencias usando --filter (incluye workspace dependencies)
-# NOTA: El postinstall de @prisma/client generará automáticamente el Prisma Client
 RUN pnpm install --frozen-lockfile --filter=${SERVICE_FILTER}...
 
 # Compilar shared packages PRIMERO (el servicio depende de estos)
 RUN pnpm --filter @logistics/types run build
-RUN pnpm --filter @logistics/utils run build
-RUN pnpm --filter @logistics/database run build
 
 # Build del servicio (y sus dependencias workspace)
 WORKDIR /app/${SERVICE_PATH}
@@ -93,17 +86,10 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 
 # Copiar package.json necesarios
 COPY backend/shared/types/package.json ./backend/shared/types/
-COPY backend/shared/utils/package.json ./backend/shared/utils/
-COPY backend/shared/database/package.json ./backend/shared/database/
 COPY ${SERVICE_PATH}/package.json ./${SERVICE_PATH}/
 
-# Copiar prisma schema para generar cliente
-COPY backend/shared/database/prisma ./backend/shared/database/prisma
-
 # Instalar SOLO production dependencies
-# NOTA: Usamos --ignore-scripts porque Prisma CLI no está en prod (es devDep)
-# El cliente Prisma generado se copiará desde el stage build
-RUN pnpm install --frozen-lockfile --filter=${SERVICE_FILTER}... --prod --ignore-scripts
+RUN pnpm install --frozen-lockfile --filter=${SERVICE_FILTER}... --prod
 
 # ===================================
 # Stage 5: Runtime - Imagen Final
@@ -124,17 +110,11 @@ WORKDIR /app
 # Copiar estructura completa de node_modules de pnpm (incluye .pnpm store)
 COPY --from=prod-deps --chown=nestjs:nodejs /app/node_modules ./node_modules
 
-# Copiar .pnpm store desde build stage (contiene Prisma Client generado)
-# Esto sobrescribe el .pnpm de prod-deps con la versión que tiene Prisma generado
-COPY --from=build --chown=nestjs:nodejs /app/node_modules/.pnpm ./node_modules/.pnpm
-
 # Copiar workspace dependencies COMPILADOS desde build stage
 # IMPORTANTE: Necesitamos las versiones compiladas (con dist/) para que Node pueda cargarlas
 COPY --from=build --chown=nestjs:nodejs /app/backend/shared/types ./backend/shared/types
-COPY --from=build --chown=nestjs:nodejs /app/backend/shared/utils ./backend/shared/utils
-COPY --from=build --chown=nestjs:nodejs /app/backend/shared/database ./backend/shared/database
 
-# Copiar node_modules del servicio específico
+# Copiar node_modules del servicio específico si existen
 COPY --from=prod-deps --chown=nestjs:nodejs /app/${SERVICE_PATH}/node_modules ./${SERVICE_PATH}/node_modules
 
 # Copiar artefactos compilados desde stage build
