@@ -39,11 +39,29 @@ export class HttpClient {
 
   private setupInterceptors() {
     this.client.interceptors.request.use(
-      (config) => {
+      async (config) => {
         let token = authStore.getToken();
         if (!token && typeof window !== 'undefined') {
           token = localStorage.getItem('auth_token') || null;
         }
+        
+        // Si no hay token, intentar obtenerlo de Keycloak
+        if (!token && typeof window !== 'undefined') {
+          try {
+            const { getKeycloak } = await import('../auth/keycloak.config');
+            const keycloak = getKeycloak();
+            
+            if (keycloak && keycloak.authenticated && keycloak.token) {
+              token = keycloak.token;
+              authStore.setToken(token);
+              console.log('✅ Token obtenido de Keycloak para request:', config.url);
+            }
+          } catch (error) {
+            // Keycloak no disponible o no inicializado aún
+            console.debug('Keycloak no disponible aún para request:', config.url);
+          }
+        }
+        
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         } else {
@@ -58,18 +76,51 @@ export class HttpClient {
     this.client.interceptors.response.use(
       (response) => response,
       async (error) => {
-        // Manejar errores 401 (Unauthorized) - redirigir al login
+        // Manejar errores 401 (Unauthorized) - intentar obtener token o redirigir al login
         if (error.response?.status === 401 && typeof window !== 'undefined') {
           const path = window.location.pathname;
+          
           // No redirigir si ya estamos en la página de login o callback
-          if (!path.startsWith('/auth') && path !== '/') {
-            console.warn('⚠️ Token inválido o expirado, redirigiendo al login...');
-            // Limpiar token inválido
-            localStorage.removeItem('auth_token');
-            authStore.setToken(null);
-            // Redirigir al login
-            window.location.href = '/';
+          if (path.startsWith('/auth') || path === '/') {
+            throw transformAxiosError(error);
           }
+
+          // Intentar obtener token de Keycloak si está disponible
+          try {
+            const { getKeycloak } = await import('../auth/keycloak.config');
+            const keycloak = getKeycloak();
+            
+            if (keycloak) {
+              // Intentar actualizar el token (puede que haya expirado)
+              const refreshed = await keycloak.updateToken(30);
+              if (refreshed && keycloak.token) {
+                console.log('✅ Token refrescado automáticamente, reintentando request...');
+                authStore.setToken(keycloak.token);
+                
+                // Reintentar el request original con el nuevo token
+                const originalRequest = error.config;
+                if (originalRequest) {
+                  originalRequest.headers.Authorization = `Bearer ${keycloak.token}`;
+                  return this.client.request(originalRequest);
+                }
+              } else if (!keycloak.authenticated) {
+                // No hay sesión activa, redirigir al login
+                console.warn('⚠️ No hay sesión activa, redirigiendo al login...');
+                localStorage.removeItem('auth_token');
+                authStore.setToken(null);
+                window.location.href = '/';
+                throw transformAxiosError(error);
+              }
+            }
+          } catch (keycloakError) {
+            console.warn('⚠️ Error al intentar refrescar token:', keycloakError);
+          }
+
+          // Si llegamos aquí, no pudimos obtener un token válido
+          console.warn('⚠️ Token inválido o expirado, redirigiendo al login...');
+          localStorage.removeItem('auth_token');
+          authStore.setToken(null);
+          window.location.href = '/';
         }
         throw transformAxiosError(error);
       }
