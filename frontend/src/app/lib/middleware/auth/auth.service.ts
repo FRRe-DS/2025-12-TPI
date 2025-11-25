@@ -34,7 +34,12 @@ export class AuthService {
       console.error('❌ Keycloak no está inicializado');
       return;
     }
-    await keycloak.login({ redirectUri: redirectUri || envConfig.frontendUrl });
+    // Asegurar que el redirectUri coincida con el configurado en keycloak.config.ts
+    const defaultRedirectUri = typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback`
+      : `${envConfig.frontendUrl}/auth/callback`;
+
+    await keycloak.login({ redirectUri: redirectUri || defaultRedirectUri });
   }
 
   async logout(redirectUri?: string): Promise<void> {
