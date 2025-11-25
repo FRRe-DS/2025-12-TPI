@@ -48,11 +48,16 @@ export class JwtGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
+      this.logger.warn(`No token provided for path: ${path}`);
+      this.logger.debug(`Request headers: ${JSON.stringify(request.headers)}`);
       throw new UnauthorizedException('No token provided');
     }
 
+    this.logger.debug(`Validating token for path: ${path}, token length: ${token.length}`);
+
     try {
       const payload = await this.jwtService.validateToken(token);
+      this.logger.debug(`Token validated successfully for user: ${payload.sub || 'unknown'}`);
       request['user'] = payload;
 
       // Check scopes
@@ -76,8 +81,23 @@ export class JwtGuard implements CanActivate {
       }
 
       return true;
-    } catch (error) {
-      this.logger.error('Token validation failed', error);
+    } catch (error: any) {
+      this.logger.error(`Token validation failed for path: ${path}`);
+      this.logger.error(`Error type: ${error.name || 'Unknown'}`);
+      this.logger.error(`Error message: ${error.message || 'No message'}`);
+      
+      // Si es un error de expiración, dar un mensaje más específico
+      if (error.name === 'TokenExpiredError') {
+        this.logger.error(`Token expired at: ${new Date(error.expiredAt).toISOString()}`);
+        throw new UnauthorizedException('Token expired');
+      }
+      
+      // Si es un error de JWKS, dar un mensaje más específico
+      if (error.message?.includes('signing key') || error.message?.includes('JWKS')) {
+        this.logger.error('Failed to retrieve signing key from Keycloak JWKS endpoint');
+        throw new UnauthorizedException('Authentication service unavailable');
+      }
+      
       throw new UnauthorizedException('Invalid token');
     }
   }
