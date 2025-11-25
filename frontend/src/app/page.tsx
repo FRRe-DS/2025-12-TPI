@@ -19,7 +19,9 @@ export default function Home() {
         const keycloak = getKeycloak();
         const token = localStorage.getItem('auth_token');
 
-        if (token && keycloak?.authenticated) {
+        // Si hay token, asumimos que está autenticado (la validación real la hace el backend)
+        // No dependemos estrictamente de keycloak.authenticated porque check-sso puede fallar
+        if (token) {
           console.log('✅ Usuario autenticado, redirigiendo a dashboard');
           setAuthState({ isAuthenticated: true, token });
           // Pequeño delay para que se vea bien

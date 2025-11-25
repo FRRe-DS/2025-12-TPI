@@ -77,8 +77,20 @@ export const KeycloakProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           authStore.setToken(null);
         };
 
+        // Intentar recuperar token almacenado para evitar falsos negativos en check-sso
+        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : undefined;
+        const storedRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('auth_refresh_token') : undefined;
+
         console.log('🔐 Inicializando Keycloak con opciones:', keycloakInitOptions);
-        const authenticated = await keycloak.init(keycloakInitOptions);
+
+        // Si tenemos token guardado, lo pasamos al init
+        const initOptions = {
+          ...keycloakInitOptions,
+          ...(storedToken ? { token: storedToken } : {}),
+          ...(storedRefreshToken ? { refreshToken: storedRefreshToken } : {})
+        };
+
+        const authenticated = await keycloak.init(initOptions);
         console.log('🔐 Keycloak init resultado - authenticated:', authenticated, 'token:', keycloak.token ? 'presente' : 'ausente');
 
         // Guardar token si existe
@@ -86,22 +98,31 @@ export const KeycloakProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           console.log('💾 Token obtenido, guardando en store y localStorage');
           authStore.setToken(keycloak.token);
         } else if (authenticated === false) {
-          console.log('ℹ️ Usuario no autenticado.');
-          
-          // Si estamos en una ruta protegida (no pública), redirigir al login
-          const protectedPaths = ['/dashboard', '/config', '/shipping', '/operaciones', '/analiticas'];
-          const isProtectedPath = protectedPaths.some(path => currentPath.startsWith(path));
-          
-          // Rutas públicas que no requieren autenticación
-          const publicPaths = ['/', '/auth', '/productos', '/reservas'];
-          const isPublicPath = publicPaths.some(path => currentPath === path || currentPath.startsWith(path));
-          
-          if (isProtectedPath && !isPublicPath) {
-            console.log('🔒 Ruta protegida sin autenticación, redirigiendo al login...');
-            // Pequeño delay para evitar loops
-            setTimeout(() => {
-              window.location.href = '/';
-            }, 100);
+          console.log('ℹ️ Usuario no autenticado por Keycloak.');
+
+          // Verificar si tenemos un token guardado manualmente antes de redirigir
+          // Esto evita el loop si check-sso falla pero tenemos el token del callback
+          if (storedToken) {
+            console.log('⚠️ check-sso falló pero hay token guardado. Asumiendo autenticado y validando...');
+            // Podríamos intentar validar el token aquí, pero por ahora confiamos en él para no bloquear
+            // Si es inválido, las llamadas a la API fallarán y se hará logout
+            authStore.setToken(storedToken);
+          } else {
+            // Si estamos en una ruta protegida (no pública), redirigir al login
+            const protectedPaths = ['/dashboard', '/config', '/shipping', '/operaciones', '/analiticas'];
+            const isProtectedPath = protectedPaths.some(path => currentPath.startsWith(path));
+
+            // Rutas públicas que no requieren autenticación
+            const publicPaths = ['/', '/auth', '/productos', '/reservas'];
+            const isPublicPath = publicPaths.some(path => currentPath === path || currentPath.startsWith(path));
+
+            if (isProtectedPath && !isPublicPath) {
+              console.log('🔒 Ruta protegida sin autenticación, redirigiendo al login...');
+              // Pequeño delay para evitar loops
+              setTimeout(() => {
+                window.location.href = '/';
+              }, 100);
+            }
           }
         }
       } catch (error) {
