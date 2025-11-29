@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Param,
   Body,
   Query,
@@ -29,6 +30,7 @@ import {
   ListShippingResponseDto,
   CancelShippingResponseDto,
 } from './dto/shipping-responses.dto';
+import { UpdateShippingStatusDto } from './dto/update-status.dto';
 import { TransportMethodsResponseDto } from './dto/transport-methods.dto';
 
 @ApiTags('📦 Logística - Gestión de Envíos')
@@ -170,6 +172,26 @@ export class ShippingController {
   })
   async getShippingDetail(@Param('id') id: string): Promise<ShippingDetailDto> {
     return this.shippingService.getShippingDetail(id);
+  }
+
+  @Patch(':id/status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '🔄 Actualizar estado de envío',
+    description:
+      'Actualiza el estado de un envío y registra el cambio en el historial',
+  })
+  @ApiParam({ name: 'id', description: 'ID del envío' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado actualizado exitosamente',
+    type: ShippingDetailDto,
+  })
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateShippingStatusDto,
+  ): Promise<ShippingDetailDto> {
+    return this.shippingService.updateStatus(id, dto);
   }
 
   @Post(':id/cancel')

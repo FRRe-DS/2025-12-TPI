@@ -30,6 +30,7 @@ import {
   ListShippingResponseDto,
   CancelShippingResponseDto,
 } from './dto/shipping-responses.dto';
+import { UpdateShippingStatusDto } from './dto/update-status.dto';
 import { TransportMethodsResponseDto } from './dto/transport-methods.dto';
 
 type DetailedCostRequest = CalculateCostRequestDto & {
@@ -943,6 +944,70 @@ export class ShippingService {
       created_at: shipping.createdAt.toISOString(),
       updated_at: shipping.updatedAt.toISOString(),
       logs: shipping.logs.map((log) => ({
+        timestamp: log.timestamp.toISOString(),
+        status: log.status,
+        message: log.message,
+      })),
+    };
+  }
+
+  async updateStatus(
+    id: string,
+    dto: UpdateShippingStatusDto,
+  ): Promise<ShippingDetailDto> {
+    this.ensureValidUuid(id, 'Shipment id');
+
+    const shipment = await this.prisma.shipment.findUnique({
+      where: { id },
+    });
+
+    if (!shipment) {
+      throw new NotFoundException('Shipment not found');
+    }
+
+    const updated = await this.prisma.shipment.update({
+      where: { id },
+      data: {
+        status: dto.status,
+        ...(dto.status === 'CANCELLED' ? { cancelledAt: new Date() } : {}),
+        logs: {
+          create: {
+            status: dto.status,
+            message: dto.message || `Status updated to ${dto.status}`,
+          },
+        },
+      },
+      include: {
+        products: true,
+        logs: {
+          orderBy: {
+            timestamp: 'desc',
+          },
+        },
+      },
+    });
+
+    return {
+      shipping_id: updated.id,
+      order_id: updated.orderReference ?? `${updated.orderId}`,
+      user_id: updated.userReference ?? `${updated.userId}`,
+      delivery_address: this.mapAddressResponse('delivery', updated)!,
+      departure_address: this.mapAddressResponse('departure', updated),
+      products: updated.products.map((p) => ({
+        product_id: p.productId,
+        quantity: p.quantity,
+        reference: p.productReference ?? `${p.productId}`,
+      })),
+      status: updated.status,
+      transport_type: updated.transportType,
+      tracking_number: updated.trackingNumber || undefined,
+      carrier_name: updated.carrierName || undefined,
+      total_cost: Number(updated.totalCost),
+      currency: updated.currency,
+      estimated_delivery_at: updated.estimatedDeliveryAt.toISOString(),
+      created_at: updated.createdAt.toISOString(),
+      updated_at: updated.updatedAt.toISOString(),
+      logs: updated.logs.map((log) => ({
         timestamp: log.timestamp.toISOString(),
         status: log.status,
         message: log.message,
