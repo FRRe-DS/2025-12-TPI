@@ -24,8 +24,10 @@ import {
   Route,
   AlertTriangle,
   Warehouse,
-  ShoppingCart
+  ShoppingCart,
+  LogOut
 } from 'lucide-react';
+import { envConfig } from '@/app/lib/config/env.config';
 
 // Using text logo instead of image for now
 const logo = "PEPACK";
@@ -46,6 +48,18 @@ export function Sidebar({
   setIsMobileOpen
 }: SidebarProps) {
   const pathname = usePathname();
+
+  const handleLogout = () => {
+    // Limpiar tokens locales
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_refresh_token');
+    
+    // Construir URL de logout de Keycloak
+    const logoutUrl = `${envConfig.keycloak.url}/realms/${envConfig.keycloak.realm}/protocol/openid-connect/logout?client_id=${envConfig.keycloak.clientId}&post_logout_redirect_uri=${encodeURIComponent(window.location.origin)}`;
+    
+    // Redirigir a Keycloak logout
+    window.location.href = logoutUrl;
+  };
 
   // Items principales sin subsecciones
   const mainMenuItems = [
@@ -284,20 +298,23 @@ export function Sidebar({
         </Link>
       </nav>
 
-      {/* Backend Status */}
+      {/* Logout Button */}
       <div className={`p-4 border-t border-white/20 ${isCollapsed ? 'px-2' : ''}`}>
-        {isCollapsed ? (
-          <div className="flex justify-center">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Info className="w-4 h-4 text-blue-700" />
+        <button
+          onClick={handleLogout}
+          className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-xl transition-all duration-300 group relative text-red-600 hover:bg-red-100 hover:text-red-700`}
+          title={isCollapsed ? 'Cerrar Sesión' : undefined}
+        >
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          {!isCollapsed && <span className="whitespace-nowrap font-medium">Cerrar Sesión</span>}
+
+          {/* Tooltip for collapsed state */}
+          {isCollapsed && (
+            <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
+              Cerrar Sesión
             </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-blue-100 text-blue-700 border border-blue-200">
-            <Info className="w-4 h-4" />
-            <span>Demo Mode</span>
-          </div>
-        )}
+          )}
+        </button>
       </div>
 
       {/* Collapse Toggle Button - Desktop Only */}
