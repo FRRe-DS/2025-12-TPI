@@ -194,7 +194,7 @@ POST http://keycloak.mmalgor.com.ar/realms/ds-2025-realm/protocol/openid-connect
 {
   "access_token": "eyJhbGciOiJSUzI1NiIs...",
   "token_type": "Bearer",
-  "expires_in": 300,
+  "expires_in": 3600,
   "refresh_token": "..."
 }
 ```
@@ -477,9 +477,9 @@ curl https://keycloak.mmalgor.com.ar/realms/ds-2025-realm/.well-known/openid-con
 # Debe devolver configuración OIDC
 ```
 
-### Problema: JWT expirado después de 5 minutos
+### Problema: JWT expirado después de 1 hora
 
-**Causa:** Tokens de Keycloak expiran (por defecto 5 min)
+**Causa:** Tokens de Keycloak expiran después de 1 hora (configurado en realm)
 
 **Solución en Frontend:**
 

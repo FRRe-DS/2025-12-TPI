@@ -5,25 +5,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  BarChart3,
-  Settings,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   X,
   Truck,
   DollarSign,
-  XOctagon,
-  Shield,
   User,
   Package,
-  Info,
   ClipboardList,
   Users,
-  BookOpen,
   Route,
   AlertTriangle,
-  Warehouse,
   ShoppingCart,
   LogOut
 } from 'lucide-react';
@@ -64,9 +57,8 @@ export function Sidebar({
   // Items principales sin subsecciones
   const mainMenuItems = [
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard, href: '/dashboard' },
-    { id: 'analitica', label: 'Analíticas', icon: BarChart3, href: '/analitica' },
-    { id: 'productos', label: 'Productos', icon: Package, href: '/productos' },
     { id: 'reservas', label: 'Reservas', icon: ShoppingCart, href: '/reservas' },
+    { id: 'seguimiento', label: 'Seguimiento de envíos', icon: Package, href: '/operaciones/seguimiento' },
   ];
 
   // Secciones con subsecciones
@@ -76,7 +68,6 @@ export function Sidebar({
       label: 'Operaciones',
       icon: ClipboardList,
       items: [
-        { id: 'operaciones-seguimiento', label: 'Seguimiento de envíos', icon: Package, href: '/operaciones/seguimiento' },
         { id: 'operaciones-hojas-ruta', label: 'Hojas de ruta / Despachos', icon: Route, href: '/operaciones/hojas-ruta' },
         { id: 'operaciones-incidencias', label: 'Incidencias y no-entregas', icon: AlertTriangle, href: '/operaciones/incidencias' },
       ]
@@ -96,36 +87,11 @@ export function Sidebar({
       items: [
         { id: 'config-vehiculos', label: 'Vehículos', icon: Truck, href: '/configuration/vehiculos' },
         { id: 'recursos-conductores', label: 'Conductores', icon: User, href: '/configuration/conductores' },
-      ]
-    },
-    {
-      id: 'catalogos',
-      label: 'Catálogos',
-      icon: BookOpen,
-      items: [
-        { id: 'config-centros-stock', label: 'Centros de stock', icon: Warehouse, href: '/configuration/centros-stock' },
         { id: 'config-transporte', label: 'Tipos de transporte', icon: Package, href: '/configuration/transporte' },
-        { id: 'config-motivos', label: 'Motivos de no entrega', icon: XOctagon, href: '/configuration/motivos' },
-      ]
-    },
-    {
-      id: 'administracion',
-      label: 'Administración',
-      icon: Shield,
-      items: [
-        { id: 'config-usuarios', label: 'Usuarios', icon: User, href: '/configuration/usuarios' },
-        { id: 'config-roles', label: 'Roles y permisos', icon: Shield, href: '/configuration/roles' },
       ]
     },
   ], []);
 
-  // Item final de configuración
-  const configMenuItem = {
-    id: 'configuracion-sistema',
-    label: 'Configuración',
-    icon: Settings,
-    href: '/configuration'
-  };
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const section = menuSections.find(section =>
@@ -276,26 +242,6 @@ export function Sidebar({
           );
         })}
 
-        {/* Item final de Configuración */}
-        <Link
-          href={configMenuItem.href}
-          onClick={handleMobileClose}
-          className={`w-full flex items-center ${isCollapsed ? 'justify-center px-2' : 'gap-3 px-4'} py-3 rounded-xl transition-all duration-300 group relative ${pathname.startsWith(configMenuItem.href)
-            ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-white transform translate-x-1'
-            : 'text-gray-700 hover:bg-white/20 hover:translate-x-1'
-            }`}
-          title={isCollapsed ? configMenuItem.label : undefined}
-        >
-          <Settings className="w-5 h-5 flex-shrink-0" />
-          {!isCollapsed && <span className="whitespace-nowrap">{configMenuItem.label}</span>}
-
-          {/* Tooltip for collapsed state */}
-          {isCollapsed && (
-            <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap z-50">
-              {configMenuItem.label}
-            </div>
-          )}
-        </Link>
       </nav>
 
       {/* Logout Button */}

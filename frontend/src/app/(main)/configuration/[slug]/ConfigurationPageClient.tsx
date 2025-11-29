@@ -3,11 +3,7 @@
 import React from "react";
 import { Vehiculos } from "@/components/config-pages/Vehiculos";
 import { ReglasCotizacion } from "@/components/config-pages/ReglasCotizacion";
-import { MotivosNoEntrega } from "@/components/config-pages/MotivosNoEntrega";
-import { RolesPermisos } from "@/components/config-pages/RolesPermisos";
-import { UsuariosConfig } from "@/components/config-pages/UsuariosConfig";
 import { TiposTransporte } from "@/components/config-pages/TiposTransporte";
-import { CentrosStock } from "@/components/config-pages/CentrosStock";
 import { Conductores } from "@/components/config-pages/Conductores";
 
 interface ConfigPageClientProps {
@@ -20,11 +16,7 @@ interface ConfigPageClientProps {
 const componentMap: Record<string, React.ComponentType> = {
   vehiculos: Vehiculos,
   cotizacion: ReglasCotizacion,
-  motivos: MotivosNoEntrega,
-  roles: RolesPermisos,
-  usuarios: UsuariosConfig,
   transporte: TiposTransporte,
-  "centros-stock": CentrosStock,
   conductores: Conductores,
 };
 
