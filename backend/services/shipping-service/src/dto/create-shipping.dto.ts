@@ -89,16 +89,37 @@ export class CreateShippingRequestDto {
   products: CreateShippingProductDto[];
 }
 
+import { ApiProperty } from '@nestjs/swagger';
+
 export class CreateShippingResponseDto {
-  shipmentId: string;
-  orderId: string;
-  userId: string;
+  @ApiProperty({ name: 'shipping_id' })
+  shipping_id: string;
+
+  @ApiProperty({ name: 'order_id' })
+  order_id: string;
+
+  @ApiProperty({ name: 'user_id' })
+  user_id: string;
+
   status: string;
-  transportType: string;
-  trackingNumber: string;
-  estimatedDeliveryDate: string;
-  totalCost: number;
+
+  @ApiProperty({ name: 'transport_type' })
+  transport_type: string;
+
+  @ApiProperty({ name: 'tracking_number' })
+  tracking_number: string;
+
+  @ApiProperty({ name: 'estimated_delivery_at' })
+  estimated_delivery_at: string;
+
+  @ApiProperty({ name: 'total_cost' })
+  total_cost: number;
+
   currency: string;
-  origin?: AddressResponseDto;
-  destination: AddressResponseDto;
+
+  @ApiProperty({ name: 'departure_address' })
+  departure_address?: AddressResponseDto;
+
+  @ApiProperty({ name: 'delivery_address' })
+  delivery_address: AddressResponseDto;
 }

@@ -70,10 +70,16 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Operator Interface API Gateway')
     .setDescription(
-      'API Gateway y Facade para operadores internos de logística. ' +
-        'Proporciona acceso unificado a todos los microservicios del sistema mediante smart proxy routing. ' +
-        'Incluye copias locales de endpoints de configuración y enrutamiento automático a servicios backend. ' +
-        'Rutas disponibles: /config/*, /shipping/*, /stock/*, /gateway/status',
+      'API Gateway Centralizado para Logística.\n\n' +
+        'Proporciona un punto de entrada unificado para todos los microservicios, gestionando autenticación, CORS y enrutamiento.\n\n' +
+        '## Servicios Integrados\n' +
+        '- **Config Service** (`/config/*`): Gestión de zonas, tarifas y métodos de transporte.\n' +
+        '- **Shipping Service** (`/shipping/*`): Cotización, creación y seguimiento de envíos.\n' +
+        '- **Stock Integration** (`/stock/*`): Consulta de productos y disponibilidad.\n' +
+        '- **Fleet Management** (`/fleet/*`): Gestión de vehículos, conductores y planificación de rutas.\n\n' +
+        '## Autenticación\n' +
+        'Todas las rutas protegidas requieren un token JWT válido en el header `Authorization: Bearer <token>`.\n' +
+        'El token se valida contra Keycloak.',
     )
     .setVersion('1.0.0')
     .setContact(
@@ -83,8 +89,13 @@ async function bootstrap() {
     )
     .setLicense('Apache 2.0', 'https://www.apache.org/licenses/LICENSE-2.0')
     .addServer(`http://localhost:${port}`, 'Development Gateway')
-    .addTag('config', '⚙️ Gestión de configuración (local)')
-    .addTag('gateway', '🌐 Estado del Gateway y Service Registry')
+    .addServer('https://apilogistica.mmalgor.com.ar', 'Production Gateway')
+    .addBearerAuth()
+    .addTag('gateway', '🌐 Estado del Gateway y Utilidades')
+    .addTag('shipping', '📦 Envíos: Cotización, Creación y Tracking (Proxy)')
+    .addTag('fleet', '🚛 Flota: Rutas, Vehículos y Conductores (Proxy)')
+    .addTag('config', '⚙️ Configuración: Tarifas y Zonas (Proxy)')
+    .addTag('stock', '🏭 Stock: Productos y Reservas (Proxy)')
     .addTag('health', '❤️ Health Checks')
     .build();
 

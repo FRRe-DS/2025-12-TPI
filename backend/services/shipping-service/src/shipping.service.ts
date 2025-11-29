@@ -166,7 +166,7 @@ export class ShippingService {
       street,
       city: shipping[`${prefix}City`],
       state: shipping[`${prefix}State`],
-      postalCode: shipping[`${prefix}PostalCode`],
+      postal_code: shipping[`${prefix}PostalCode`],
       country: shipping[`${prefix}Country`],
     };
   }
@@ -175,17 +175,17 @@ export class ShippingService {
     shipment: any,
   ): CreateShippingResponseDto {
     return {
-      shipmentId: shipment.id,
-      orderId: shipment.orderReference ?? `${shipment.orderId}`,
-      userId: shipment.userReference ?? `${shipment.userId}`,
+      shipping_id: shipment.id,
+      order_id: shipment.orderReference ?? `${shipment.orderId}`,
+      user_id: shipment.userReference ?? `${shipment.userId}`,
       status: shipment.status,
-      transportType: shipment.transportType,
-      trackingNumber: shipment.trackingNumber,
-      estimatedDeliveryDate: shipment.estimatedDeliveryAt.toISOString(),
-      totalCost: Number(shipment.totalCost),
+      transport_type: shipment.transportType,
+      tracking_number: shipment.trackingNumber,
+      estimated_delivery_at: shipment.estimatedDeliveryAt.toISOString(),
+      total_cost: Number(shipment.totalCost),
       currency: shipment.currency,
-      destination: this.mapAddressResponse('delivery', shipment)!,
-      origin: this.mapAddressResponse('departure', shipment),
+      delivery_address: this.mapAddressResponse('delivery', shipment)!,
+      departure_address: this.mapAddressResponse('departure', shipment),
     };
   }
 
@@ -456,10 +456,11 @@ export class ShippingService {
     const volumetricRounded = Math.round(volumetricWeight * 100) / 100;
 
     return {
-      quoteId: this.mockData.generateTrackingNumber(),
+      quote_id: this.mockData.generateTrackingNumber(),
       currency: 'ARS',
-      totalCost: tariff.totalCost,
-      transportType: requestedTransport,
+      total_cost: tariff.totalCost,
+      transport_type: requestedTransport,
+      products: [],
       distance: roundedDistance,
       estimatedDeliveryDays: this.mockData.getEstimatedDeliveryTime(
         mockTransport,
@@ -565,10 +566,11 @@ export class ShippingService {
     const roundedPhysicalWeight = Math.round(totalWeight * 100) / 100;
 
     return {
-      quoteId: this.mockData.generateTrackingNumber(),
+      quote_id: this.mockData.generateTrackingNumber(),
       currency: 'ARS',
-      totalCost: Math.round(totalCost),
-      transportType: transportCode,
+      total_cost: Math.round(totalCost),
+      transport_type: transportCode,
+      products: productCosts,
       distance: roundedDistance,
       estimatedDeliveryDays: this.mockData.getEstimatedDeliveryTime(
         mockTransport,
@@ -636,7 +638,7 @@ export class ShippingService {
     const trackingNumber = this.mockData.generateTrackingNumber();
     const estimatedDelivery = new Date();
     estimatedDelivery.setDate(
-      estimatedDelivery.getDate() + costResult.estimatedDeliveryDays,
+      estimatedDelivery.getDate() + costResult.estimatedDeliveryDays!,
     );
 
     const shipment = await this.prisma.shipment.create({
@@ -658,7 +660,7 @@ export class ShippingService {
         departureCountry: this.normalizeCountryCode(origin.country),
         transportType: transportCode,
         status: 'CREATED',
-        totalCost: costResult.totalCost,
+        totalCost: costResult.total_cost,
         currency: costResult.currency ?? 'ARS',
         estimatedDeliveryAt: estimatedDelivery,
         products: {
@@ -883,18 +885,18 @@ export class ShippingService {
 
     return {
       shipments: shipments.map((s) => ({
-        shipmentId: s.id,
-        orderId: s.orderReference ?? `${s.orderId}`,
-        userId: s.userReference ?? `${s.userId}`,
+        shipping_id: s.id,
+        order_id: s.orderReference ?? `${s.orderId}`,
+        user_id: s.userReference ?? `${s.userId}`,
         products: s.products.map((p) => ({
-          productId: p.productId,
+          product_id: p.productId,
           quantity: p.quantity,
           reference: p.productReference ?? `${p.productId}`,
         })),
         status: s.status,
-        transportType: s.transportType,
-        estimatedDeliveryDate: s.estimatedDeliveryAt.toISOString(),
-        createdAt: s.createdAt.toISOString(),
+        transport_type: s.transportType,
+        estimated_delivery_at: s.estimatedDeliveryAt.toISOString(),
+        created_at: s.createdAt.toISOString(),
       })),
       total,
       page: pageNumber,
@@ -921,25 +923,25 @@ export class ShippingService {
     }
 
     return {
-      shipmentId: shipping.id,
-      orderId: shipping.orderReference ?? `${shipping.orderId}`,
-      userId: shipping.userReference ?? `${shipping.userId}`,
-      destination: this.mapAddressResponse('delivery', shipping)!,
-      origin: this.mapAddressResponse('departure', shipping),
+      shipping_id: shipping.id,
+      order_id: shipping.orderReference ?? `${shipping.orderId}`,
+      user_id: shipping.userReference ?? `${shipping.userId}`,
+      delivery_address: this.mapAddressResponse('delivery', shipping)!,
+      departure_address: this.mapAddressResponse('departure', shipping),
       products: shipping.products.map((p) => ({
-        productId: p.productId,
+        product_id: p.productId,
         quantity: p.quantity,
         reference: p.productReference ?? `${p.productId}`,
       })),
       status: shipping.status,
-      transportType: shipping.transportType,
-      trackingNumber: shipping.trackingNumber || undefined,
-      carrierName: shipping.carrierName || undefined,
-      totalCost: Number(shipping.totalCost),
+      transport_type: shipping.transportType,
+      tracking_number: shipping.trackingNumber || undefined,
+      carrier_name: shipping.carrierName || undefined,
+      total_cost: Number(shipping.totalCost),
       currency: shipping.currency,
-      estimatedDeliveryDate: shipping.estimatedDeliveryAt.toISOString(),
-      createdAt: shipping.createdAt.toISOString(),
-      updatedAt: shipping.updatedAt.toISOString(),
+      estimated_delivery_at: shipping.estimatedDeliveryAt.toISOString(),
+      created_at: shipping.createdAt.toISOString(),
+      updated_at: shipping.updatedAt.toISOString(),
       logs: shipping.logs.map((log) => ({
         timestamp: log.timestamp.toISOString(),
         status: log.status,
@@ -969,22 +971,22 @@ export class ShippingService {
     const updated = await this.prisma.shipment.update({
       where: { id },
       data: {
-      status: 'CANCELLED',
+        status: 'CANCELLED',
         cancelledAt,
         logs: {
           create: {
-          status: 'CANCELLED',
-          message: 'Shipment cancelled by user',
+            status: 'CANCELLED',
+            message: 'Shipment cancelled by user',
             timestamp: cancelledAt,
-        },
+          },
         },
       },
     });
 
     return {
-      shipmentId: updated.id,
+      shipping_id: updated.id,
       status: 'CANCELLED',
-      cancelledAt: updated.cancelledAt!.toISOString(),
+      cancelled_at: updated.cancelledAt!.toISOString(),
       message: 'Shipment cancelled successfully',
     };
   }

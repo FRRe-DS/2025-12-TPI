@@ -3,6 +3,7 @@ import { HttpModule } from '@nestjs/axios';
 import { ServiceRegistry } from './service-registry';
 import { ServiceFacade } from './service-facade';
 import { ProxyController } from './proxy.controller';
+import { DocsController } from './docs.controller';
 
 /**
  * CoreModule - Módulo central del Operator Interface Service
@@ -11,6 +12,7 @@ import { ProxyController } from './proxy.controller';
  * - ServiceRegistry: Service Discovery dinámico
  * - ServiceFacade: Patrón Facade para orquestar servicios
  * - ProxyController: Router inteligente con auto-discovery
+ * - DocsController: Expone esquemas para Swagger (no maneja tráfico real)
  *
  * Arquitectura:
  * ```
@@ -25,7 +27,7 @@ import { ProxyController } from './proxy.controller';
  */
 @Module({
   imports: [HttpModule],
-  controllers: [ProxyController],
+  controllers: [DocsController, ProxyController], // DocsController antes para evitar conflictos (aunque tiene prefijo)
   providers: [ServiceRegistry, ServiceFacade],
   exports: [ServiceRegistry, ServiceFacade],
 })

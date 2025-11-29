@@ -109,13 +109,35 @@ export class CalculateCostRequestDto {
   transportType?: string;
 }
 
+import { ApiProperty } from '@nestjs/swagger';
+
+export class ProductCostDto {
+  @ApiProperty()
+  id: number;
+
+  @ApiProperty()
+  cost: number;
+}
+
 export class CalculateCostResponseDto {
-  quoteId: string;
+  @ApiProperty({ name: 'quote_id' })
+  quote_id: string;
+
+  @ApiProperty()
   currency: string;
-  totalCost: number;
-  transportType: string;
-  distance: number;
-  estimatedDeliveryDays: number;
+
+  @ApiProperty({ name: 'total_cost' })
+  total_cost: number;
+
+  @ApiProperty({ name: 'transport_type' })
+  transport_type: string;
+
+  @ApiProperty()
+  products?: ProductCostDto[]; // Added to match YAML requirements
+
+  // Extra fields not in YAML but useful (keeping them optional or hidden if strictly YAML needed, but extra fields usually allowed)
+  distance?: number;
+  estimatedDeliveryDays?: number;
   totalWeight?: number;
   billableWeight?: number;
   breakdown?: {

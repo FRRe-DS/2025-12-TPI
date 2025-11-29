@@ -1,6 +1,11 @@
+import { ApiProperty } from '@nestjs/swagger';
+
 export class ProductQtyDto {
-  productId: number;
+  @ApiProperty({ name: 'product_id' })
+  product_id: number;
+
   quantity: number;
+
   reference?: string;
 }
 
@@ -14,37 +19,79 @@ export class AddressResponseDto {
   street: string;
   city: string;
   state: string;
-  postalCode: string;
+  
+  @ApiProperty({ name: 'postal_code' })
+  postal_code: string;
+  
   country: string;
 }
 
 export class ShippingDetailDto {
-  shipmentId: string;
-  orderId: string;
-  userId: string;
-  destination: AddressResponseDto;
-  origin?: AddressResponseDto;
+  @ApiProperty({ name: 'shipping_id' })
+  shipping_id: string;
+
+  @ApiProperty({ name: 'order_id' })
+  order_id: string;
+
+  @ApiProperty({ name: 'user_id' })
+  user_id: string;
+
+  @ApiProperty({ name: 'delivery_address' })
+  delivery_address: AddressResponseDto;
+
+  @ApiProperty({ name: 'departure_address' })
+  departure_address?: AddressResponseDto;
+
   products: ProductQtyDto[];
   status: string;
-  transportType: string;
-  trackingNumber?: string;
-  carrierName?: string;
-  totalCost: number;
+
+  @ApiProperty({ name: 'transport_type' })
+  transport_type: string;
+
+  @ApiProperty({ name: 'tracking_number' })
+  tracking_number?: string;
+
+  @ApiProperty({ name: 'carrier_name' })
+  carrier_name?: string;
+
+  @ApiProperty({ name: 'total_cost' })
+  total_cost: number;
+
   currency: string;
-  estimatedDeliveryDate: string;
-  createdAt: string;
-  updatedAt: string;
+
+  @ApiProperty({ name: 'estimated_delivery_at' })
+  estimated_delivery_at: string;
+
+  @ApiProperty({ name: 'created_at' })
+  created_at: string;
+
+  @ApiProperty({ name: 'updated_at' })
+  updated_at: string;
+
   logs: ShippingLogDto[];
 }
 
 export class ShippingSummaryDto {
-  shipmentId: string;
-  orderId: string;
-  userId: string;
+  @ApiProperty({ name: 'shipping_id' })
+  shipping_id: string;
+
+  @ApiProperty({ name: 'order_id' })
+  order_id: string;
+
+  @ApiProperty({ name: 'user_id' })
+  user_id: string;
+
   status: string;
-  transportType: string;
-  estimatedDeliveryDate: string;
-  createdAt: string;
+
+  @ApiProperty({ name: 'transport_type' })
+  transport_type: string;
+
+  @ApiProperty({ name: 'estimated_delivery_at' })
+  estimated_delivery_at: string;
+
+  @ApiProperty({ name: 'created_at' })
+  created_at: string;
+
   products: ProductQtyDto[];
 }
 
@@ -56,8 +103,13 @@ export class ListShippingResponseDto {
 }
 
 export class CancelShippingResponseDto {
-  shipmentId: string;
+  @ApiProperty({ name: 'shipping_id' })
+  shipping_id: string;
+
   status: string;
-  cancelledAt: string;
+
+  @ApiProperty({ name: 'cancelled_at' })
+  cancelled_at: string;
+
   message?: string;
 }
