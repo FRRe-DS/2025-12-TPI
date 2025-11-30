@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { Search, Package, Truck, MapPin } from 'lucide-react';
+import { Search, Package, Truck, MapPin, List, ArrowLeft } from 'lucide-react';
 import { ShipmentDetail } from './types/shipment';
-import { getShipmentDetails } from './services/api';
+import { getShipmentDetails, getShipmentsList, ShipmentListItem } from './services/api';
 import { formatDate, formatCurrency, getStatusLabel, getStatusColor, getTransportTypeLabel } from './utils/formatters';
 
 function App() {
   const [searchInput, setSearchInput] = useState('');
   const [shipment, setShipment] = useState<ShipmentDetail | null>(null);
+  const [shipmentsList, setShipmentsList] = useState<ShipmentListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<'search' | 'details'>('search');
+  const [currentView, setCurrentView] = useState<'search' | 'details' | 'list'>('search');
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,8 +34,29 @@ function App() {
   const handleBackToSearch = () => {
     setCurrentView('search');
     setShipment(null);
+    setShipmentsList([]);
     setError(null);
     setSearchInput('');
+  };
+
+  const handleViewShipmentsList = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const data = await getShipmentsList({ limit: 50 }); // Obtener hasta 50 envíos para testing
+      setShipmentsList(data.shipments);
+      setCurrentView('list');
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar la lista de envíos');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSelectShipment = (shippingId: number) => {
+    setSearchInput(shippingId.toString());
+    setCurrentView('search');
   };
 
   const getStatusTimeline = (currentStatus: string, logStatus: string) => {
@@ -107,18 +129,30 @@ function App() {
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={!searchInput.trim() || isLoading}
-                  className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? 'Buscando...' : 'Rastrear Envío'}
-                </button>
-              </form>
-            </div>
+            <button
+              type="submit"
+              disabled={!searchInput.trim() || isLoading}
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'Buscando...' : 'Rastrear Envío'}
+            </button>
+          </form>
 
-            {/* Error State */}
-            {error && (
+          {/* List Available Shipments Button */}
+          <div className="mt-4 text-center">
+            <button
+              onClick={handleViewShipmentsList}
+              disabled={isLoading}
+              className="btn-secondary text-sm"
+            >
+              <List className="w-4 h-4 inline mr-2" />
+              {isLoading ? 'Cargando...' : 'Ver Envíos Disponibles'}
+            </button>
+          </div>
+        </div>
+
+        {/* Error State */}
+        {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-6">
                 <h3 className="text-base font-semibold text-red-900 mb-2">
                   Envío no encontrado
@@ -299,6 +333,100 @@ function App() {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* Shipments List View */}
+        {currentView === 'list' && !isLoading && !error && (
+          <div className="space-y-6">
+            {/* Back Button */}
+            <div className="bg-white rounded-lg border border-slate-200 p-4">
+              <button
+                onClick={handleBackToSearch}
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Volver a búsqueda
+              </button>
+            </div>
+
+            {/* Shipments List */}
+            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-200">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Envíos Disponibles para Consulta
+                </h2>
+                <p className="text-sm text-slate-600 mt-1">
+                  Selecciona un envío para ver sus detalles completos
+                </p>
+              </div>
+
+              <div className="divide-y divide-slate-200">
+                {shipmentsList.length === 0 ? (
+                  <div className="px-6 py-8 text-center text-slate-500">
+                    No hay envíos disponibles
+                  </div>
+                ) : (
+                  shipmentsList.map((item) => (
+                    <div
+                      key={item.shipping_id}
+                      className="px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors"
+                      onClick={() => handleSelectShipment(item.shipping_id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Package className="w-5 h-5 text-slate-400" />
+                            <span className="font-medium text-slate-900">
+                              Envío #{item.shipping_id}
+                            </span>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status as any)}`}>
+                              {getStatusLabel(item.status as any)}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-slate-600">
+                            <div>
+                              <span className="font-medium">Pedido:</span> {item.order_id}
+                            </div>
+                            <div>
+                              <span className="font-medium">Transporte:</span> {getTransportTypeLabel(item.transport_type)}
+                            </div>
+                            <div>
+                              <span className="font-medium">Creado:</span> {formatDate(item.created_at)}
+                            </div>
+                          </div>
+
+                          <div className="mt-2 text-sm text-slate-600">
+                            <span className="font-medium">Productos:</span> {item.products.length} ítem(s)
+                          </div>
+                        </div>
+
+                        <div className="ml-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectShipment(item.shipping_id);
+                            }}
+                            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                          >
+                            Ver Detalles
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {shipmentsList.length > 0 && (
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200">
+                  <p className="text-sm text-slate-600">
+                    Mostrando {shipmentsList.length} envío(s). Haz clic en cualquier envío para ver sus detalles completos.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

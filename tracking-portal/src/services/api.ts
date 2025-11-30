@@ -43,3 +43,40 @@ export const getShipmentDetails = async (shippingId: string): Promise<ShipmentDe
   const response = await apiClient.get<ShipmentDetail>(`/shipping/${shippingId}`);
   return response.data;
 };
+
+export interface ShipmentListItem {
+  shipping_id: number;
+  order_id: string;
+  user_id: string;
+  products: Array<{
+    product_id: number;
+    quantity: number;
+    reference?: string;
+  }>;
+  status: string;
+  transport_type: string;
+  estimated_delivery_at: string;
+  created_at: string;
+}
+
+export interface ShipmentListResponse {
+  shipments: ShipmentListItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export const getShipmentsList = async (params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}): Promise<ShipmentListResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.append('page', params.page.toString());
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+  if (params?.status) queryParams.append('status', params.status);
+
+  const url = `/shipping${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  const response = await apiClient.get<ShipmentListResponse>(url);
+  return response.data;
+};
