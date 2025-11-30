@@ -1,139 +1,144 @@
 "use client";
-import React, { useEffect, useState, useRef } from 'react';
-import { initializeKeycloak, keycloakInitOptions } from './keycloak.config';
+import React, { useEffect, useState, useRef, createContext, useContext, useCallback } from 'react';
+import Keycloak from 'keycloak-js';
+import { initializeKeycloak } from './keycloak.config';
 import { authStore } from '../stores/auth.store';
+
+// ============================================================================
+// TIPOS Y CONTEXTO
+// ============================================================================
+
+interface KeycloakContextValue {
+  keycloak: Keycloak | null;
+  initialized: boolean;
+  authenticated: boolean;
+  token: string | null;
+  login: () => void;
+  logout: () => void;
+}
+
+const KeycloakContext = createContext<KeycloakContextValue>({
+  keycloak: null,
+  initialized: false,
+  authenticated: false,
+  token: null,
+  login: () => {},
+  logout: () => {},
+});
+
+export const useKeycloak = () => useContext(KeycloakContext);
+
+// ============================================================================
+// PROVIDER PRINCIPAL
+// ============================================================================
 
 export const KeycloakProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [initialized, setInitialized] = useState(false);
-  const initializationRef = useRef(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [keycloak, setKeycloak] = useState<Keycloak | null>(null);
+  const initRef = useRef(false);
 
-  useEffect(() => {
-    // Prevenir inicializaciones múltiples usando ref + estado
-    // El ref evita inicializaciones durante hidratación, el estado previene nuevos efectos
-    if (initializationRef.current || initialized) {
-      return;
+  // Función de login - redirige a Keycloak
+  const login = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    
+    if (keycloak) {
+      keycloak.login({
+        redirectUri: `${window.location.origin}/auth/callback`,
+      });
+    } else {
+      // Crear instancia y hacer login
+      const kc = initializeKeycloak();
+      kc.login({
+        redirectUri: `${window.location.origin}/auth/callback`,
+      });
     }
+  }, [keycloak]);
 
-    // Asegurar que solo se ejecuta en el cliente
-    if (typeof window === 'undefined') {
-      initializationRef.current = true;
+  // Función de logout
+  const logout = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_refresh_token');
+    authStore.setToken(null);
+    setToken(null);
+    setAuthenticated(false);
+    
+    if (keycloak) {
+      keycloak.logout({
+        redirectUri: window.location.origin,
+      });
+    } else {
+      window.location.href = '/';
+    }
+  }, [keycloak]);
+
+  // Inicialización
+  useEffect(() => {
+    if (initRef.current || initialized) return;
+    if (typeof window === 'undefined') return;
+
+    initRef.current = true;
+    const currentPath = window.location.pathname;
+
+    // Si estamos en /auth/callback, NO inicializar Keycloak aquí
+    // La página de callback lo manejará
+    if (currentPath === '/auth/callback' || currentPath.startsWith('/auth/')) {
+      console.log('📍 En ruta de auth, saltando inicialización del provider');
       setInitialized(true);
       return;
     }
 
-    initializationRef.current = true;
+    // Para otras rutas, solo verificar si hay token válido en localStorage
+    // NO hacer check-sso automático para evitar redirecciones
+    const existingToken = localStorage.getItem('auth_token');
+    
+    if (existingToken && isTokenValid(existingToken)) {
+      console.log('✅ Token válido encontrado en localStorage');
+      setToken(existingToken);
+      setAuthenticated(true);
+      authStore.setToken(existingToken);
+      
+      // Crear instancia de Keycloak para futuras operaciones (sin init)
+      const kc = initializeKeycloak();
+      setKeycloak(kc);
+    } else {
+      console.log('❌ No hay token válido');
+      localStorage.removeItem('auth_token');
+      setAuthenticated(false);
+    }
+    
+    setInitialized(true);
+  }, [initialized]);
 
-    (async () => {
-      try {
-        const currentPath = window.location.pathname;
+  const contextValue: KeycloakContextValue = {
+    keycloak,
+    initialized,
+    authenticated,
+    token,
+    login,
+    logout,
+  };
 
-        console.log('🔐 Inicializando Keycloak Provider en el cliente...');
-        console.log('📍 Path actual:', currentPath);
-
-        // Si estamos en /auth/callback, no hacer nada aquí
-        // La página de callback maneja la autenticación
-        if (currentPath === '/auth/callback') {
-          console.log('📍 En página de callback, saltando inicialización');
-          setInitialized(true);
-          return;
-        }
-
-        // Limpiar tokens viejos de Keycloak (opcional, pero seguro)
-        // NOTA: NO borrar keys que empiecen con 'kc-callback-' porque son necesarias para el redirect
-        Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith('KEYCLOAK_')) {
-            localStorage.removeItem(key);
-          }
-        });
-
-        // Inicializar Keycloak (solo en cliente)
-        const keycloak = initializeKeycloak();
-
-        // Configurar listeners antes de inicializar
-        keycloak.onTokenExpired = () => {
-          console.log('🔄 Token expirado, refrescando...');
-          keycloak.updateToken(30).then((refreshed) => {
-            if (refreshed && keycloak.token) {
-              console.log('✅ Token refrescado exitosamente');
-              authStore.setToken(keycloak.token);
-            }
-          }).catch((error) => {
-            console.warn('❌ Error refrescando token:', error);
-            // No forzar login automáticamente
-            console.log('ℹ️ Token expiró, usuario puede hacer login nuevamente si es necesario');
-          });
-        };
-
-        keycloak.onAuthSuccess = () => {
-          console.log('✅ Autenticación exitosa');
-          if (keycloak.token) {
-            console.log('💾 Guardando token en localStorage');
-            authStore.setToken(keycloak.token);
-          }
-        };
-
-        keycloak.onAuthError = (error) => {
-          console.error('❌ Error de autenticación:', error);
-          authStore.setToken(null);
-        };
-
-        // Intentar recuperar token almacenado para evitar falsos negativos en check-sso
-        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : undefined;
-        const storedRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('auth_refresh_token') : undefined;
-
-        console.log('🔐 Inicializando Keycloak con opciones:', keycloakInitOptions);
-
-        // Si tenemos token guardado, lo pasamos al init
-        const initOptions = {
-          ...keycloakInitOptions,
-          ...(storedToken ? { token: storedToken } : {}),
-          ...(storedRefreshToken ? { refreshToken: storedRefreshToken } : {})
-        };
-
-        const authenticated = await keycloak.init(initOptions);
-        console.log('🔐 Keycloak init resultado - authenticated:', authenticated, 'token:', keycloak.token ? 'presente' : 'ausente');
-
-        // Guardar token si existe
-        if (keycloak.token) {
-          console.log('💾 Token obtenido, guardando en store y localStorage');
-          authStore.setToken(keycloak.token);
-        } else if (authenticated === false) {
-          console.log('ℹ️ Usuario no autenticado por Keycloak.');
-
-          // Verificar si tenemos un token guardado manualmente antes de redirigir
-          // Esto evita el loop si check-sso falla pero tenemos el token del callback
-          if (storedToken) {
-            console.log('⚠️ check-sso falló pero hay token guardado. Asumiendo autenticado y validando...');
-            // Podríamos intentar validar el token aquí, pero por ahora confiamos en él para no bloquear
-            // Si es inválido, las llamadas a la API fallarán y se hará logout
-            authStore.setToken(storedToken);
-          } else {
-            // Si estamos en una ruta protegida (no pública), redirigir al login
-            const protectedPaths = ['/dashboard', '/config', '/shipping', '/operaciones', '/analiticas'];
-            const isProtectedPath = protectedPaths.some(path => currentPath.startsWith(path));
-
-            // Rutas públicas que no requieren autenticación
-            const publicPaths = ['/', '/auth', '/productos', '/reservas'];
-            const isPublicPath = publicPaths.some(path => currentPath === path || currentPath.startsWith(path));
-
-            if (isProtectedPath && !isPublicPath) {
-              console.log('🔒 Ruta protegida sin autenticación, redirigiendo al login...');
-              // Pequeño delay para evitar loops
-              setTimeout(() => {
-                window.location.href = '/';
-              }, 100);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('❌ Keycloak initialization error:', error);
-        // Continuar sin fallar - las rutas pueden manejar autenticación faltante
-      } finally {
-        setInitialized(true);
-      }
-    })();
-  }, []); // Solo ejecutar una vez al montar
-
-  // No bloquear render - Keycloak se inicializa en background
-  return <>{children}</>;
+  return (
+    <KeycloakContext.Provider value={contextValue}>
+      {children}
+    </KeycloakContext.Provider>
+  );
 };
+
+// Función helper para validar token
+function isTokenValid(token: string): boolean {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+    const payload = JSON.parse(atob(parts[1]));
+    return payload.exp && payload.exp > Math.floor(Date.now() / 1000);
+  } catch {
+    return false;
+  }
+}
+
+export default KeycloakProvider;

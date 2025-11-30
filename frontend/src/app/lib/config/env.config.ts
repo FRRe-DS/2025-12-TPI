@@ -76,7 +76,7 @@ export const envConfig: EnvConfig = {
 
   // Keycloak config
   keycloak: {
-    url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'http://localhost:8080',
+    url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'https://keycloak.mmalgor.com.ar',
     realm: process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'ds-2025-realm',
     clientId: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || 'grupo-12',
   },
