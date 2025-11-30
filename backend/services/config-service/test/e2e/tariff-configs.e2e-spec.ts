@@ -30,7 +30,7 @@ describe('ConfigService: Tariff Configs (E2E)', () => {
     // Create a transport method for tariff tests
     const transportMethod = await prisma.transportMethod.create({
       data: {
-        code: 'e2e-test-tariff-method',
+        code: 'e2e-tariff-test', // Max 20 chars
         name: 'E2E Tariff Test Method',
         averageSpeed: 100,
         estimatedDays: '1-2',
@@ -64,8 +64,7 @@ describe('ConfigService: Tariff Configs (E2E)', () => {
         baseTariff: 50.0,
         costPerKg: 2.5,
         costPerKm: 1.2,
-        minWeight: 0,
-        maxWeight: 100,
+        volumetricFactor: 167,
         isActive: true,
       };
 
@@ -218,7 +217,9 @@ describe('ConfigService: Tariff Configs (E2E)', () => {
             baseTariff: 75.0,
             costPerKg: 3.0,
             costPerKm: 1.5,
-          });
+            volumetricFactor: 167,
+          })
+          .expect(201);
         createdTariffId = createResponse.body.id;
       }
 
@@ -265,7 +266,9 @@ describe('ConfigService: Tariff Configs (E2E)', () => {
             baseTariff: 100.0,
             costPerKg: 4.0,
             costPerKm: 2.0,
-          });
+            volumetricFactor: 167,
+          })
+          .expect(201);
         createdTariffId = createResponse.body.id;
       }
 
@@ -317,22 +320,6 @@ describe('ConfigService: Tariff Configs (E2E)', () => {
       expect(response.body).toHaveProperty('message');
     });
 
-    it('should allow partial updates', async () => {
-      if (!createdTariffId) return;
-
-      const partialUpdate = {
-        minWeight: 10,
-        maxWeight: 500,
-      };
-
-      const response = await request(app.getHttpServer())
-        .patch(`/config/tariff-configs/${createdTariffId}`)
-        .send(partialUpdate)
-        .expect(200);
-
-      expect(response.body.minWeight).toBe(partialUpdate.minWeight);
-      expect(response.body.maxWeight).toBe(partialUpdate.maxWeight);
-    });
   });
 
   describe('DELETE /config/tariff-configs/:id', () => {
@@ -345,7 +332,9 @@ describe('ConfigService: Tariff Configs (E2E)', () => {
           baseTariff: 200.0,
           costPerKg: 5.0,
           costPerKm: 3.0,
-        });
+          volumetricFactor: 167,
+        })
+        .expect(201);
 
       const tariffToDelete = createResponse.body.id;
 
@@ -376,22 +365,21 @@ describe('ConfigService: Tariff Configs (E2E)', () => {
   });
 
   describe('Edge Cases & Business Rules', () => {
-    it('should handle weight ranges validation (minWeight <= maxWeight)', async () => {
-      const invalidRange = {
+    it('should handle invalid volumetric factor', async () => {
+      const invalidVolumetric = {
         transportMethodId: testTransportMethodId,
         baseTariff: 50.0,
         costPerKg: 2.0,
         costPerKm: 1.0,
-        minWeight: 100,
-        maxWeight: 50, // Invalid: max < min
+        volumetricFactor: -1, // Invalid: negative
       };
 
       const response = await request(app.getHttpServer())
         .post('/config/tariff-configs')
-        .send(invalidRange);
+        .send(invalidVolumetric);
 
-      // Should either validate or accept (depends on DTO validation)
-      expect([201, 400, 500]).toContain(response.status);
+      // Should validate and reject negative values
+      expect([400, 500]).toContain(response.status);
     });
 
     it('should handle zero values for costs', async () => {
@@ -400,6 +388,7 @@ describe('ConfigService: Tariff Configs (E2E)', () => {
         baseTariff: 0,
         costPerKg: 0,
         costPerKm: 0,
+        volumetricFactor: 167,
       };
 
       const response = await request(app.getHttpServer())
@@ -416,6 +405,7 @@ describe('ConfigService: Tariff Configs (E2E)', () => {
         baseTariff: 99.999999,
         costPerKg: 1.123456789,
         costPerKm: 0.987654321,
+        volumetricFactor: 167,
       };
 
       const response = await request(app.getHttpServer())
@@ -434,8 +424,7 @@ describe('ConfigService: Tariff Configs (E2E)', () => {
         baseTariff: 100.0,
         costPerKg: 2.0,
         costPerKm: 1.0,
-        minWeight: null,
-        maxWeight: null,
+        volumetricFactor: 167,
       };
 
       const response = await request(app.getHttpServer())

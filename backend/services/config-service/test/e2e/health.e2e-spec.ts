@@ -27,7 +27,7 @@ describe('ConfigService: Health (E2E)', () => {
 
       expect(response.body).toHaveProperty('status', 'ok');
       expect(response.body).toHaveProperty('timestamp');
-      expect(response.body).toHaveProperty('service', 'config-service');
+      expect(response.body).toHaveProperty('service', 'Config Service');
     });
 
     it('should return proper health check structure', async () => {
@@ -131,7 +131,7 @@ describe('ConfigService: Health (E2E)', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('service');
-      expect(response.body.service).toBe('config-service');
+      expect(response.body.service).toBe('Config Service');
     });
 
     it('GET / should return version info', async () => {

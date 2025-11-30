@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService, Route } from '@logistics/database';
 import { CreateRouteDto } from '../dto/create-route.dto';
 import { UpdateRouteDto } from '../dto/update-route.dto';
+import { isUUID } from 'class-validator';
 
 @Injectable()
 export class RoutesService {
@@ -25,6 +26,9 @@ export class RoutesService {
   }
 
   async findOne(id: string): Promise<Route> {
+    if (!isUUID(id)) {
+      throw new BadRequestException('Invalid UUID format');
+    }
     const route = await this.prisma.route.findUnique({
       where: { id },
       include: {
@@ -42,6 +46,9 @@ export class RoutesService {
   }
 
   async update(id: string, updateRouteDto: UpdateRouteDto): Promise<Route> {
+    if (!isUUID(id)) {
+      throw new BadRequestException('Invalid UUID format');
+    }
     await this.findOne(id);
     return this.prisma.route.update({
       where: { id },
@@ -50,6 +57,9 @@ export class RoutesService {
   }
 
   async remove(id: string): Promise<Route> {
+    if (!isUUID(id)) {
+      throw new BadRequestException('Invalid UUID format');
+    }
     await this.findOne(id);
     return this.prisma.route.delete({
       where: { id },

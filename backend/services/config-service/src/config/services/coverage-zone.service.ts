@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
@@ -73,9 +74,28 @@ export class CoverageZoneService {
       `Creando nueva zona de cobertura: ${createCoverageZoneDto.name}`,
     );
 
-    return this.prisma.coverageZone.create({
-      data: createCoverageZoneDto,
+    // Check for duplicate name
+    const existing = await this.prisma.coverageZone.findFirst({
+      where: { name: createCoverageZoneDto.name },
     });
+
+    if (existing) {
+      this.logger.warn(`Duplicate name: ${createCoverageZoneDto.name}`);
+      throw new ConflictException(`Coverage zone with name "${createCoverageZoneDto.name}" already exists`);
+    }
+
+    try {
+      return await this.prisma.coverageZone.create({
+        data: createCoverageZoneDto,
+      });
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        const field = (error.meta?.target as string[])?.[0] || 'field';
+        this.logger.warn(`Duplicate ${field}: ${createCoverageZoneDto[field as keyof CreateCoverageZoneDto]}`);
+        throw new ConflictException(`Coverage zone with this ${field} already exists`);
+      }
+      throw error;
+    }
   }
 
   /**

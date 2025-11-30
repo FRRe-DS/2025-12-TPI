@@ -163,10 +163,10 @@ services:
       dockerfile: Dockerfile
     container_name: logistics-frontend
     ports:
-      - "3000:3005"
+      - "3000:3000"
     environment:
       - NODE_ENV=production
-      - PORT=3005
+      - PORT=3000
       - NEXT_PUBLIC_API_URL=http://localhost:3004
       - NEXT_PUBLIC_KEYCLOAK_URL=https://keycloak.mmalgor.com.ar
       - NEXT_PUBLIC_KEYCLOAK_REALM=ds-2025-realm

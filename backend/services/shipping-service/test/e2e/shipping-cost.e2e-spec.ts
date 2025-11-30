@@ -66,14 +66,14 @@ describe('ShippingService: Cost Calculation (E2E)', () => {
         .expect(201);
 
       expect(response.body).toMatchObject({
-        quoteId: expect.any(String),
-        totalCost: expect.any(Number),
+        quote_id: expect.any(String),
+        total_cost: expect.any(Number),
         estimatedDeliveryDays: expect.any(Number),
         distance: expect.any(Number),
-        transportType: 'GROUND',
+        transport_type: 'GROUND',
       });
 
-      expect(response.body.totalCost).toBeGreaterThan(0);
+      expect(response.body.total_cost).toBeGreaterThan(0);
       expect(response.body.distance).toBeGreaterThan(0);
       expect(response.body.estimatedDeliveryDays).toBeGreaterThan(0);
     });
@@ -332,7 +332,7 @@ describe('ShippingService: Cost Calculation (E2E)', () => {
         .send(volumetricRequest)
         .expect(201);
 
-      expect(response.body.totalCost).toBeGreaterThan(0);
+      expect(response.body.total_cost).toBeGreaterThan(0);
       if (response.body.breakdown) {
         expect(response.body.breakdown).toHaveProperty('volumetricWeight');
       }
@@ -385,7 +385,7 @@ describe('ShippingService: Cost Calculation (E2E)', () => {
         .send(multiProductRequest)
         .expect(201);
 
-      expect(response.body.totalCost).toBeGreaterThan(0);
+      expect(response.body.total_cost).toBeGreaterThan(0);
       expect(response.body).toHaveProperty('totalWeight');
       if (response.body.totalWeight) {
         // 2*5 + 1*10 + 3*2 = 26 kg
@@ -429,7 +429,7 @@ describe('ShippingService: Cost Calculation (E2E)', () => {
       expect(response.body).toHaveProperty('message');
     });
 
-    it('should generate unique quoteId for each request', async () => {
+    it('should generate unique quote_id for each request', async () => {
       const costRequest = {
         origin: {
           street: 'Test',
@@ -466,10 +466,10 @@ describe('ShippingService: Cost Calculation (E2E)', () => {
         .send(costRequest)
         .expect(201);
 
-      expect(response1.body.quoteId).not.toBe(response2.body.quoteId);
+      expect(response1.body.quote_id).not.toBe(response2.body.quote_id);
     });
 
-    it('should cache quote results (same quoteId returns cached)', async () => {
+    it('should cache quote results (same quote_id returns cached)', async () => {
       const costRequest = {
         origin: {
           street: 'Test',
@@ -501,7 +501,7 @@ describe('ShippingService: Cost Calculation (E2E)', () => {
         .send(costRequest)
         .expect(201);
 
-      const quoteId = firstResponse.body.quoteId;
+      const quote_id = firstResponse.body.quote_id;
 
       // Second request with same data should potentially use cache
       const secondResponse = await request(app.getHttpServer())
@@ -510,7 +510,7 @@ describe('ShippingService: Cost Calculation (E2E)', () => {
         .expect(201);
 
       // Both should return valid quotes (caching is internal optimization)
-      expect(firstResponse.body.totalCost).toBe(secondResponse.body.totalCost);
+      expect(firstResponse.body.total_cost).toBe(secondResponse.body.total_cost);
     });
   });
 });

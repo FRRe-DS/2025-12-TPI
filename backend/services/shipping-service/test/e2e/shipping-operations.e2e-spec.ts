@@ -59,7 +59,7 @@ describe('ShippingService: Operations (E2E)', () => {
             },
           },
         ],
-        transportType: 'GROUND',
+        transport_type: 'GROUND',
       };
 
       const response = await request(app.getHttpServer())
@@ -68,16 +68,16 @@ describe('ShippingService: Operations (E2E)', () => {
         .expect(201);
 
       expect(response.body).toMatchObject({
-        shipmentId: expect.any(String),
-        userId: newShipment.userId,
+        shipping_id: expect.any(String),
+        user_id: newShipment.userId,
         status: expect.any(String),
-        trackingNumber: expect.any(String),
-        estimatedDeliveryDate: expect.any(String),
-        totalCost: expect.any(Number),
+        tracking_number: expect.any(String),
+        estimated_delivery_at: expect.any(String),
+        total_cost: expect.any(Number),
       });
 
       expect(['PENDING', 'CREATED', 'PROCESSING']).toContain(response.body.status);
-      createdShipmentId = response.body.shipmentId;
+      createdShipmentId = response.body.shipping_id;
     });
 
     it('should return 400 for missing required fields', async () => {
@@ -133,7 +133,7 @@ describe('ShippingService: Operations (E2E)', () => {
         .send(shipment1)
         .expect(201);
 
-      expect(response1.body.trackingNumber).not.toBe(response2.body.trackingNumber);
+      expect(response1.body.tracking_number).not.toBe(response2.body.tracking_number);
     });
   });
 
@@ -189,7 +189,7 @@ describe('ShippingService: Operations (E2E)', () => {
 
       expect(response.body.shipments.length).toBeGreaterThan(0);
       response.body.shipments.forEach((shipment: any) => {
-        expect(shipment.userId).toBe(userId);
+        expect(shipment.user_id).toBe(userId);
       });
     });
 
@@ -258,8 +258,9 @@ describe('ShippingService: Operations (E2E)', () => {
                 dimensions: { length: 10, width: 10, height: 10 },
               },
             ],
-          });
-        createdShipmentId = createResponse.body.shipmentId;
+          })
+          .expect(201);
+        createdShipmentId = createResponse.body.shipping_id;
       }
 
       const response = await request(app.getHttpServer())
@@ -267,12 +268,12 @@ describe('ShippingService: Operations (E2E)', () => {
         .expect(200);
 
       expect(response.body).toMatchObject({
-        shipmentId: createdShipmentId,
-        userId: expect.any(String),
+        shipping_id: createdShipmentId,
+        user_id: expect.any(String),
         status: expect.any(String),
-        trackingNumber: expect.any(String),
-        origin: expect.any(Object),
-        destination: expect.any(Object),
+        tracking_number: expect.any(String),
+        departure_address: expect.any(Object),
+        delivery_address: expect.any(Object),
         products: expect.any(Array),
       });
     });
@@ -341,16 +342,17 @@ describe('ShippingService: Operations (E2E)', () => {
               dimensions: { length: 10, width: 10, height: 10 },
             },
           ],
-        });
+        })
+        .expect(201);
 
-      const shipmentId = createResponse.body.shipmentId;
+      const shipping_id = createResponse.body.shipping_id;
 
       const response = await request(app.getHttpServer())
-        .post(`/shipping/${shipmentId}/cancel`)
+        .post(`/shipping/${shipping_id}/cancel`)
         .expect(200);
 
       expect(response.body).toMatchObject({
-        shipmentId,
+        shipping_id,
         status: 'CANCELLED',
         message: expect.any(String),
       });
@@ -400,18 +402,19 @@ describe('ShippingService: Operations (E2E)', () => {
               dimensions: { length: 10, width: 10, height: 10 },
             },
           ],
-        });
+        })
+        .expect(201);
 
-      const shipmentId = createResponse.body.shipmentId;
+      const shipping_id = createResponse.body.shipping_id;
 
       // First cancellation
       await request(app.getHttpServer())
-        .post(`/shipping/${shipmentId}/cancel`)
+        .post(`/shipping/${shipping_id}/cancel`)
         .expect(200);
 
       // Second cancellation should fail
       const response = await request(app.getHttpServer())
-        .post(`/shipping/${shipmentId}/cancel`);
+        .post(`/shipping/${shipping_id}/cancel`);
 
       expect([400, 409]).toContain(response.status);
     });

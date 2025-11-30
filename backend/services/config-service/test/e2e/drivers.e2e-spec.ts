@@ -49,7 +49,6 @@ describe('ConfigService: Drivers (E2E)', () => {
         lastName: 'Doe',
         licenseNumber: 'LIC-E2E-12345',
         licenseType: 'A',
-        licenseExpiry: new Date('2025-12-31').toISOString(),
         phone: '+54911234567',
         email: 'john.doe.e2e@test.com',
         status: 'ACTIVE',
@@ -108,10 +107,14 @@ describe('ConfigService: Drivers (E2E)', () => {
 
     it('should return 409 for duplicate employeeId', async () => {
       const duplicateDriver = {
-        employeeId: 'E2E-TEST-001',
+        employeeId: 'E2E-TEST-001', // Duplicate from first test
         firstName: 'Duplicate',
         lastName: 'Test',
         licenseNumber: 'LIC-DUPLICATE',
+        licenseType: 'A',
+        phone: '+54911234567',
+        email: 'duplicate.e2e@test.com',
+        status: 'ACTIVE',
       };
 
       const response = await request(app.getHttpServer())
@@ -126,7 +129,11 @@ describe('ConfigService: Drivers (E2E)', () => {
         employeeId: 'E2E-TEST-003',
         firstName: 'Another',
         lastName: 'Duplicate',
-        licenseNumber: 'LIC-E2E-12345',
+        licenseNumber: 'LIC-E2E-12345', // Duplicate from first test
+        licenseType: 'A',
+        phone: '+54911234567',
+        email: 'duplicate2.e2e@test.com',
+        status: 'ACTIVE',
       };
 
       const response = await request(app.getHttpServer())
@@ -304,7 +311,12 @@ describe('ConfigService: Drivers (E2E)', () => {
           firstName: 'Delete',
           lastName: 'Test',
           licenseNumber: 'LIC-DELETE',
-        });
+          licenseType: 'A',
+          phone: '+54911234567',
+          email: 'delete.e2e@test.com',
+          status: 'ACTIVE',
+        })
+        .expect(201);
 
       const driverToDelete = createResponse.body.id;
 
@@ -334,12 +346,16 @@ describe('ConfigService: Drivers (E2E)', () => {
   });
 
   describe('Edge Cases & Validation', () => {
-    it('should accept driver without optional fields', async () => {
+    it('should accept driver with all required fields', async () => {
       const minimalDriver = {
         employeeId: 'E2E-TEST-MINIMAL',
         firstName: 'Minimal',
         lastName: 'Driver',
         licenseNumber: 'LIC-MINIMAL',
+        licenseType: 'A',
+        phone: '+54911234567',
+        email: 'minimal.e2e@test.com',
+        status: 'ACTIVE',
       };
 
       const response = await request(app.getHttpServer())
@@ -348,8 +364,8 @@ describe('ConfigService: Drivers (E2E)', () => {
         .expect(201);
 
       expect(response.body).toHaveProperty('id');
-      expect(response.body.phone).toBeNull();
-      expect(response.body.email).toBeNull();
+      expect(response.body.phone).toBe(minimalDriver.phone);
+      expect(response.body.email).toBe(minimalDriver.email);
     });
 
     it('should validate status enum values', async () => {
@@ -374,7 +390,10 @@ describe('ConfigService: Drivers (E2E)', () => {
         firstName: 'Expired',
         lastName: 'License',
         licenseNumber: 'LIC-EXPIRED',
-        licenseExpiry: new Date('2020-01-01').toISOString(), // Expired
+        licenseType: 'A',
+        phone: '+54911234567',
+        email: 'expired.e2e@test.com',
+        status: 'ACTIVE',
       };
 
       const response = await request(app.getHttpServer())

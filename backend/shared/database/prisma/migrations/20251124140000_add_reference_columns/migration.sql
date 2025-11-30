@@ -4,6 +4,6 @@ ALTER TABLE "shipments"
   ADD COLUMN IF NOT EXISTS "user_reference" VARCHAR(100);
 
 -- Ensure shipment products can store external references
-ALTER TABLE "shipment_products"
+ALTER TABLE "shipping_products"
   ADD COLUMN IF NOT EXISTS "product_reference" VARCHAR(100);
 
