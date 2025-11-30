@@ -100,14 +100,14 @@ export class VehiclesController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Eliminar un vehículo',
     description: 'Elimina un vehículo de la flota'
   })
   @ApiParam({ name: 'id', description: 'ID único del vehículo' })
   @ApiResponse({
-    status: 204,
+    status: 200,
     description: 'Vehículo eliminado exitosamente',
   })
   @ApiResponse({

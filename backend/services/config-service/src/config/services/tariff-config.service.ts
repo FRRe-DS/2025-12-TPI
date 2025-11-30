@@ -141,16 +141,20 @@ export class TariffConfigService {
   }
 
   /**
-   * Elimina una configuración de tarifa
+   * Elimina una configuración de tarifa (soft delete)
    */
-  async remove(id: string): Promise<void> {
+  async remove(id: string): Promise<TariffConfig> {
     this.logger.log(`Eliminando configuración de tarifa con ID: ${id}`);
 
     // Verificar que existe
     await this.findOne(id);
 
-    await this.prisma.tariffConfig.delete({
+    return this.prisma.tariffConfig.update({
       where: { id },
+      data: { isActive: false },
+      include: {
+        transportMethod: true,
+      },
     });
   }
 

@@ -79,13 +79,13 @@ export class DriversController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Eliminar un conductor',
     description: 'Elimina un conductor del registro'
   })
   @ApiParam({ name: 'id', description: 'ID único del conductor' })
-  @ApiResponse({ status: 204, description: 'Conductor eliminado' })
+  @ApiResponse({ status: 200, description: 'Conductor eliminado' })
   @ApiResponse({ status: 404, description: 'Conductor no encontrado' })
   async remove(@Param('id') id: string): Promise<Driver> {
     this.logger.log(`DELETE /fleet/drivers/${id}`);

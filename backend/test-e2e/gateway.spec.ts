@@ -1,12 +1,12 @@
 import axios from 'axios';
 
 // CONFIGURACIÓN
-const KEYCLOAK_URL = 'https://keycloak.mmalgor.com.ar';
-const REALM = 'ds-2025-realm';
-const CLIENT_ID = 'grupo-02';
+const KEYCLOAK_URL = process.env.KEYCLOAK_URL;
+const REALM = process.env.REALM;
+const CLIENT_ID = process.env.CLIENT_ID;
 // Credenciales de prueba
-const USERNAME = 'test-user';
-const PASSWORD = '12deboca';
+const USERNAME = process.env.USERNAME;
+const PASSWORD = process.env.PASSWORD;
 
 const GATEWAY_URL = 'http://localhost:3004';
 
@@ -116,4 +116,3 @@ describe('Logistics System E2E Tests (Auth & Gateway)', () => {
     }
   });
 });
-

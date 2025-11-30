@@ -11,7 +11,7 @@ export class RoutesService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getPendingShipments() {
+  async getPendingShipments(): Promise<any[]> {
     this.logger.log('Fetching pending shipments for routing');
 
     // Buscar envíos CREATED que no estén asignados a ninguna ruta (routeStop es null)

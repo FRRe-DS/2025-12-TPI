@@ -19,7 +19,7 @@ export class RoutesController {
     status: 200,
     description: 'Lista de envíos pendientes',
   })
-  async getPendingShipments() {
+  async getPendingShipments(): Promise<any[]> {
     return this.routesService.getPendingShipments();
   }
 

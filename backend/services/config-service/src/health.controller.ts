@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PrismaService } from '@logistics/database';
 
@@ -40,5 +40,23 @@ export class HealthController {
         database: databaseHealthy ? 'healthy' : 'unhealthy',
       },
     };
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.METHOD_NOT_ALLOWED)
+  postNotAllowed() {
+    return { statusCode: 405, message: 'Method Not Allowed' };
+  }
+
+  @Put()
+  @HttpCode(HttpStatus.METHOD_NOT_ALLOWED)
+  putNotAllowed() {
+    return { statusCode: 405, message: 'Method Not Allowed' };
+  }
+
+  @Delete()
+  @HttpCode(HttpStatus.METHOD_NOT_ALLOWED)
+  deleteNotAllowed() {
+    return { statusCode: 405, message: 'Method Not Allowed' };
   }
 }

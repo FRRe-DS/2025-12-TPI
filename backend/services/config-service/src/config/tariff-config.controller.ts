@@ -109,18 +109,18 @@ export class TariffConfigController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Eliminar una configuración de tarifa' })
   @ApiParam({ name: 'id', description: 'ID de la configuración de tarifa' })
   @ApiResponse({
-    status: 204,
-    description: 'Configuración de tarifa eliminada exitosamente',
+    status: 200,
+    description: 'Configuración de tarifa eliminada exitosamente (soft delete)',
   })
   @ApiResponse({
     status: 404,
     description: 'Configuración de tarifa no encontrada',
   })
-  async remove(@Param('id') id: string): Promise<void> {
+  async remove(@Param('id') id: string): Promise<TariffConfig> {
     this.logger.log(`DELETE /config/tariff-configs/${id}`);
     return this.tariffConfigService.remove(id);
   }
