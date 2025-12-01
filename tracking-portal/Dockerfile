@@ -24,7 +24,12 @@ RUN pnpm run build
 RUN if [ ! -f dist/pepacklogo.jpeg ] && [ -f public/pepacklogo.jpeg ]; then \
       cp public/pepacklogo.jpeg dist/pepacklogo.jpeg; \
     fi && \
-    ls -la dist/ | grep -E "pepack|index|assets" || ls -la dist/
+    echo "=== Build output verification ===" && \
+    ls -la dist/ && \
+    echo "=== Assets directory ===" && \
+    ls -la dist/assets/ 2>/dev/null || echo "No assets directory found" && \
+    echo "=== index.html content ===" && \
+    head -15 dist/index.html
 
 # Production stage
 FROM nginx:alpine
