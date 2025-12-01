@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { Search, Package, Truck, MapPin, List, ArrowLeft } from 'lucide-react';
+import { Search, Truck, MapPin, ArrowLeft } from 'lucide-react';
 import { ShipmentDetail } from './types/shipment';
-import { getShipmentDetails, getShipmentsList, ShipmentListItem } from './services/api';
+import { getShipmentDetails } from './services/api';
 import { formatDate, formatCurrency, getStatusLabel, getStatusColor, getTransportTypeLabel } from './utils/formatters';
 
 function App() {
   const [searchInput, setSearchInput] = useState('');
   const [shipment, setShipment] = useState<ShipmentDetail | null>(null);
-  const [shipmentsList, setShipmentsList] = useState<ShipmentListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<'search' | 'details' | 'list'>('search');
+  const [currentView, setCurrentView] = useState<'search' | 'details'>('search');
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,30 +33,11 @@ function App() {
   const handleBackToSearch = () => {
     setCurrentView('search');
     setShipment(null);
-    setShipmentsList([]);
     setError(null);
     setSearchInput('');
   };
 
-  const handleViewShipmentsList = async () => {
-    setIsLoading(true);
-    setError(null);
 
-    try {
-      const data = await getShipmentsList({ limit: 50 }); // Obtener hasta 50 envíos para testing
-      setShipmentsList(data.shipments);
-      setCurrentView('list');
-    } catch (err: any) {
-      setError(err.message || 'Error al cargar la lista de envíos');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSelectShipment = (shippingId: number) => {
-    setSearchInput(shippingId.toString());
-    setCurrentView('search');
-  };
 
   const getStatusTimeline = (currentStatus: string, logStatus: string) => {
     const statusOrder = ['created', 'reserved', 'in_transit', 'arrived', 'in_distribution', 'delivered'];
@@ -80,14 +60,18 @@ function App() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                <Package className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 rounded-xl overflow-hidden bg-white shadow-md flex items-center justify-center">
+                <img
+                  src="/pepacklogo.jpeg"
+                  alt="PEPACK - Paquetería con sabor"
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-slate-900">
                   Seguimiento de Envío
                 </h1>
-                <p className="text-xs text-slate-500">PEPACK Logistics</p>
+                <p className="text-xs text-slate-500">PEPACK · Paquetería con sabor</p>
               </div>
             </div>
             {currentView === 'details' && (
@@ -159,18 +143,6 @@ function App() {
                   )}
                 </button>
               </form>
-
-              {/* List Available Shipments Button */}
-              <div className="mt-6 text-center">
-                <button
-                  onClick={handleViewShipmentsList}
-                  disabled={isLoading}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                >
-                  <List className="w-4 h-4" />
-                  {isLoading ? 'Cargando...' : 'Ver Envíos Disponibles'}
-                </button>
-              </div>
             </div>
 
             {/* Error State */}
@@ -193,46 +165,7 @@ function App() {
                 </div>
               </div>
             )}
-
-            {/* Info Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/50 p-6 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-4 shadow-md">
-                  <Search className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900 mb-2">
-                  Búsqueda Rápida
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  Encuentra tu envío en segundos con nuestro sistema de búsqueda inteligente
-                </p>
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/50 p-6 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
-                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mb-4 shadow-md">
-                  <Truck className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900 mb-2">
-                  Seguimiento en Tiempo Real
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  Consulta el estado actualizado de tu envío en cualquier momento del día
-                </p>
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/50 p-6 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center mb-4 shadow-md">
-                  <MapPin className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-base font-bold text-slate-900 mb-2">
-                  Información Detallada
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  Visualiza toda la información de tu envío y su historial completo de eventos
-                </p>
-              </div>
-            </div>
-          </div>
+          </div>  
         ) : (
           /* Details View */
           <div className="space-y-6">
@@ -375,99 +308,6 @@ function App() {
           </div>
         )}
 
-        {/* Shipments List View */}
-        {currentView === 'list' && !isLoading && !error && (
-          <div className="space-y-6">
-            {/* Back Button */}
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <button
-                onClick={handleBackToSearch}
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Volver a búsqueda
-              </button>
-            </div>
-
-            {/* Shipments List */}
-            <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-200">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Envíos Disponibles para Consulta
-                </h2>
-                <p className="text-sm text-slate-600 mt-1">
-                  Selecciona un envío para ver sus detalles completos
-                </p>
-              </div>
-
-              <div className="divide-y divide-slate-200">
-                {shipmentsList.length === 0 ? (
-                  <div className="px-6 py-8 text-center text-slate-500">
-                    No hay envíos disponibles
-                  </div>
-                ) : (
-                  shipmentsList.map((item) => (
-                    <div
-                      key={item.shipping_id}
-                      className="px-6 py-4 hover:bg-slate-50 cursor-pointer transition-colors"
-                      onClick={() => handleSelectShipment(item.shipping_id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <Package className="w-5 h-5 text-slate-400" />
-                            <span className="font-medium text-slate-900">
-                              Envío #{item.shipping_id}
-                            </span>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status as any)}`}>
-                              {getStatusLabel(item.status as any)}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-slate-600">
-                            <div>
-                              <span className="font-medium">Pedido:</span> {item.order_id}
-                            </div>
-                            <div>
-                              <span className="font-medium">Transporte:</span> {getTransportTypeLabel(item.transport_type)}
-                            </div>
-                            <div>
-                              <span className="font-medium">Creado:</span> {formatDate(item.created_at)}
-                            </div>
-                          </div>
-
-                          <div className="mt-2 text-sm text-slate-600">
-                            <span className="font-medium">Productos:</span> {item.products.length} ítem(s)
-                          </div>
-                        </div>
-
-                        <div className="ml-4">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectShipment(item.shipping_id);
-                            }}
-                            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-                          >
-                            Ver Detalles
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {shipmentsList.length > 0 && (
-                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200">
-                  <p className="text-sm text-slate-600">
-                    Mostrando {shipmentsList.length} envío(s). Haz clic en cualquier envío para ver sus detalles completos.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

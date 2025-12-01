@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import {
   LayoutDashboard,
   ChevronLeft,
@@ -21,9 +22,16 @@ import {
   LogOut
 } from 'lucide-react';
 import { envConfig } from '@/app/lib/config/env.config';
+import PepackLogo from '@/components/pepacklogo.jpeg';
 
-// Using text logo instead of image for now
-const logo = <img src="/pepacklogo.jpeg" alt="PEPACK" className="w-10 h-10" />;
+const logo = (
+  <Image
+    src={PepackLogo}
+    alt="PEPACK - Paquetería con sabor"
+    className="w-full h-full object-contain"
+    priority
+  />
+);
 
 interface SidebarProps {
   activeTab?: string;
@@ -143,7 +151,7 @@ export function Sidebar({
       <div className={`p-6 border-b border-white/20 ${isCollapsed ? 'px-4' : ''}`}>
         <div className="flex items-center justify-center">
           <div className={`flex items-center justify-center ${isCollapsed ? 'w-12 h-12' : 'w-32 h-32'}`}>
-            <span className="text-2xl font-bold text-white">{logo}</span>
+            {logo}
           </div>
         </div>
       </div>
