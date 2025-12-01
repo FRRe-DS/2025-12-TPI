@@ -20,6 +20,12 @@ ARG VITE_API_URL=http://operator-interface-service:3004
 ENV VITE_API_URL=$VITE_API_URL
 RUN pnpm run build
 
+# Ensure public assets are copied (Vite should do this automatically, but let's verify)
+RUN if [ ! -f dist/pepacklogo.jpeg ] && [ -f public/pepacklogo.jpeg ]; then \
+      cp public/pepacklogo.jpeg dist/pepacklogo.jpeg; \
+    fi && \
+    ls -la dist/ | grep -E "pepack|index|assets" || ls -la dist/
+
 # Production stage
 FROM nginx:alpine
 
