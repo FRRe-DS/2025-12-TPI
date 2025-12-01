@@ -29,6 +29,7 @@ import {
   ShippingDetailDto,
   ListShippingResponseDto,
   CancelShippingResponseDto,
+  PublicShippingTrackingDto,
 } from './dto/shipping-responses.dto';
 import { UpdateShippingStatusDto } from './dto/update-status.dto';
 import { TransportMethodsResponseDto } from './dto/transport-methods.dto';
@@ -177,8 +178,8 @@ export class ShippingService {
   ): CreateShippingResponseDto {
     return {
       shipping_id: shipment.id,
-      order_id: shipment.orderReference ?? `${shipment.orderId}`,
-      user_id: shipment.userReference ?? `${shipment.userId}`,
+      order_id: shipment.orderId, // ID numérico de la compra que origina el envío
+      user_id: shipment.userId, // ID numérico del usuario
       status: shipment.status,
       transport_type: shipment.transportType,
       tracking_number: shipment.trackingNumber,
@@ -887,8 +888,8 @@ export class ShippingService {
     return {
       shipments: shipments.map((s) => ({
         shipping_id: s.id,
-        order_id: s.orderReference ?? `${s.orderId}`,
-        user_id: s.userReference ?? `${s.userId}`,
+        order_id: s.orderId, // ID numérico de la compra que origina el envío
+        user_id: s.userId, // ID numérico del usuario
         products: s.products.map((p) => ({
           product_id: p.productId,
           quantity: p.quantity,
@@ -896,12 +897,102 @@ export class ShippingService {
         })),
         status: s.status,
         transport_type: s.transportType,
+        tracking_number: s.trackingNumber || undefined,
+        delivery_address: this.mapAddressResponse('delivery', s) || undefined,
         estimated_delivery_at: s.estimatedDeliveryAt.toISOString(),
         created_at: s.createdAt.toISOString(),
       })),
       total,
       page: pageNumber,
       limit: limitNumber,
+    };
+  }
+
+  async getShippingByTrackingNumber(trackingNumber: string): Promise<ShippingDetailDto> {
+    if (!trackingNumber || trackingNumber.trim().length === 0) {
+      throw new BadRequestException('Tracking number is required');
+    }
+
+    const shipping = await this.prisma.shipment.findFirst({
+      where: { trackingNumber: trackingNumber.trim() },
+      include: {
+        products: true,
+        logs: {
+          orderBy: {
+            timestamp: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!shipping) {
+      throw new NotFoundException('Shipping not found with the provided tracking number');
+    }
+
+    return {
+      shipping_id: shipping.id,
+      order_id: shipping.orderId, // ID numérico de la compra que origina el envío
+      user_id: shipping.userId, // ID numérico del usuario
+      delivery_address: this.mapAddressResponse('delivery', shipping)!,
+      departure_address: this.mapAddressResponse('departure', shipping),
+      products: shipping.products.map((p) => ({
+        product_id: p.productId,
+        quantity: p.quantity,
+        reference: p.productReference ?? `${p.productId}`,
+      })),
+      status: shipping.status,
+      transport_type: shipping.transportType,
+      tracking_number: shipping.trackingNumber || undefined,
+      carrier_name: shipping.carrierName || undefined,
+      total_cost: Number(shipping.totalCost),
+      currency: shipping.currency,
+      estimated_delivery_at: shipping.estimatedDeliveryAt.toISOString(),
+      created_at: shipping.createdAt.toISOString(),
+      updated_at: shipping.updatedAt.toISOString(),
+      logs: shipping.logs.map((log) => ({
+        timestamp: log.timestamp.toISOString(),
+        status: log.status,
+        message: log.message,
+      })),
+    };
+  }
+
+  async getPublicTrackingByTrackingNumber(
+    trackingNumber: string,
+  ): Promise<PublicShippingTrackingDto> {
+    if (!trackingNumber || trackingNumber.trim().length === 0) {
+      throw new BadRequestException('Tracking number is required');
+    }
+
+    const shipping = await this.prisma.shipment.findFirst({
+      where: { trackingNumber: trackingNumber.trim() },
+      include: {
+        logs: {
+          orderBy: {
+            timestamp: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!shipping) {
+      throw new NotFoundException(
+        'Shipping not found with the provided tracking number',
+      );
+    }
+
+    return {
+      shipping_id: shipping.id,
+      tracking_number: shipping.trackingNumber,
+      status: shipping.status,
+      delivery_address: this.mapAddressResponse('delivery', shipping)!,
+      estimated_delivery_at: shipping.estimatedDeliveryAt.toISOString(),
+      created_at: shipping.createdAt.toISOString(),
+      logs: shipping.logs.map((log) => ({
+        timestamp: log.timestamp.toISOString(),
+        status: log.status,
+        message: log.message,
+      })),
     };
   }
 
@@ -925,8 +1016,8 @@ export class ShippingService {
 
     return {
       shipping_id: shipping.id,
-      order_id: shipping.orderReference ?? `${shipping.orderId}`,
-      user_id: shipping.userReference ?? `${shipping.userId}`,
+      order_id: shipping.orderId, // ID numérico de la compra que origina el envío
+      user_id: shipping.userId, // ID numérico del usuario
       delivery_address: this.mapAddressResponse('delivery', shipping)!,
       departure_address: this.mapAddressResponse('departure', shipping),
       products: shipping.products.map((p) => ({
@@ -989,8 +1080,8 @@ export class ShippingService {
 
     return {
       shipping_id: updated.id,
-      order_id: updated.orderReference ?? `${updated.orderId}`,
-      user_id: updated.userReference ?? `${updated.userId}`,
+      order_id: updated.orderId, // ID numérico de la compra que origina el envío
+      user_id: updated.userId, // ID numérico del usuario
       delivery_address: this.mapAddressResponse('delivery', updated)!,
       departure_address: this.mapAddressResponse('departure', updated),
       products: updated.products.map((p) => ({

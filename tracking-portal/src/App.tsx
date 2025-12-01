@@ -74,130 +74,161 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200/50 shadow-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Package className="w-8 h-8 text-blue-600" />
-              <h1 className="text-xl font-semibold text-slate-900">
-                Seguimiento de Envío
-              </h1>
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
+                <Package className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-900">
+                  Seguimiento de Envío
+                </h1>
+                <p className="text-xs text-slate-500">PEPACK Logistics</p>
+              </div>
             </div>
             {currentView === 'details' && (
               <button
                 onClick={handleBackToSearch}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:text-blue-600 font-medium hover:bg-blue-50 rounded-lg transition-colors"
               >
-                ← Nueva búsqueda
+                <ArrowLeft className="w-4 h-4" />
+                Nueva búsqueda
               </button>
             )}
           </div>
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
         {currentView === 'search' ? (
           /* Search View */
-          <div className="space-y-8">
+          <div className="space-y-12">
             {/* Hero Section */}
-            <div className="text-center">
-              <h2 className="text-3xl font-semibold text-slate-900 mb-4">
+            <div className="text-center space-y-4">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg mb-4">
+                <Truck className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 Rastrea tu envío
               </h2>
-              <p className="text-slate-600">
-                Ingresa tu número de seguimiento para conocer el estado actual de tu pedido
+              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                Ingresa tu número de seguimiento para conocer el estado actual de tu pedido en tiempo real
               </p>
             </div>
 
             {/* Search Form */}
-            <div className="bg-white rounded-lg border border-slate-200 p-8 shadow-sm">
-              <form onSubmit={handleSearch} className="space-y-4">
-                <div>
-                  <label htmlFor="tracking" className="block text-sm font-medium text-slate-700 mb-2">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 p-8 md:p-10 shadow-xl">
+              <form onSubmit={handleSearch} className="space-y-6">
+                <div className="space-y-2">
+                  <label htmlFor="tracking" className="block text-sm font-semibold text-slate-700">
                     Código de Envío
                   </label>
-                  <input
-                    id="tracking"
-                    type="text"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="Ej: 12345 o LOG-AR-123456789"
-                    className="input-field"
-                    autoFocus
-                  />
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      id="tracking"
+                      type="text"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      placeholder="Ej: TRK12345678 o LOG-AR-123456789"
+                      className="w-full pl-12 pr-4 py-4 border-2 border-slate-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white"
+                      autoFocus
+                    />
+                  </div>
                 </div>
 
-            <button
-              type="submit"
-              disabled={!searchInput.trim() || isLoading}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Buscando...' : 'Rastrear Envío'}
-            </button>
-          </form>
+                <button
+                  type="submit"
+                  disabled={!searchInput.trim() || isLoading}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 rounded-xl font-semibold text-base hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Buscando...
+                    </span>
+                  ) : (
+                    'Rastrear Envío'
+                  )}
+                </button>
+              </form>
 
-          {/* List Available Shipments Button */}
-          <div className="mt-4 text-center">
-            <button
-              onClick={handleViewShipmentsList}
-              disabled={isLoading}
-              className="btn-secondary text-sm"
-            >
-              <List className="w-4 h-4 inline mr-2" />
-              {isLoading ? 'Cargando...' : 'Ver Envíos Disponibles'}
-            </button>
-          </div>
-        </div>
+              {/* List Available Shipments Button */}
+              <div className="mt-6 text-center">
+                <button
+                  onClick={handleViewShipmentsList}
+                  disabled={isLoading}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <List className="w-4 h-4" />
+                  {isLoading ? 'Cargando...' : 'Ver Envíos Disponibles'}
+                </button>
+              </div>
+            </div>
 
-        {/* Error State */}
-        {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                <h3 className="text-base font-semibold text-red-900 mb-2">
-                  Envío no encontrado
-                </h3>
-                <p className="text-sm text-red-700">
-                  {error}
-                </p>
+            {/* Error State */}
+            {error && (
+              <div className="bg-red-50 border-2 border-red-200 rounded-xl p-6 shadow-md animate-in fade-in slide-in-from-top-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-red-900 mb-1">
+                      Envío no encontrado
+                    </h3>
+                    <p className="text-sm text-red-700">
+                      {error}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Info Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="card p-6">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-                  <Search className="w-5 h-5 text-blue-600" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/50 p-6 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-4 shadow-md">
+                  <Search className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 mb-2">
+                <h3 className="text-base font-bold text-slate-900 mb-2">
                   Búsqueda Rápida
                 </h3>
-                <p className="text-xs text-slate-600">
-                  Encuentra tu envío en segundos con nuestro sistema de búsqueda
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Encuentra tu envío en segundos con nuestro sistema de búsqueda inteligente
                 </p>
               </div>
 
-              <div className="card p-6">
-                <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mb-3">
-                  <Truck className="w-5 h-5 text-emerald-600" />
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/50 p-6 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mb-4 shadow-md">
+                  <Truck className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 mb-2">
+                <h3 className="text-base font-bold text-slate-900 mb-2">
                   Seguimiento en Tiempo Real
                 </h3>
-                <p className="text-xs text-slate-600">
-                  Consulta el estado actualizado de tu envío en cualquier momento
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Consulta el estado actualizado de tu envío en cualquier momento del día
                 </p>
               </div>
 
-              <div className="card p-6">
-                <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mb-3">
-                  <MapPin className="w-5 h-5 text-amber-600" />
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/50 p-6 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center mb-4 shadow-md">
+                  <MapPin className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 mb-2">
+                <h3 className="text-base font-bold text-slate-900 mb-2">
                   Información Detallada
                 </h3>
-                <p className="text-xs text-slate-600">
-                  Visualiza toda la información de tu envío y su historial completo
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Visualiza toda la información de tu envío y su historial completo de eventos
                 </p>
               </div>
             </div>
@@ -220,21 +251,24 @@ function App() {
             {shipment && !isLoading && (
               <>
                 {/* Status Card */}
-                <div className="card p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(shipment.status)}`}>
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 p-8 shadow-xl">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-6">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className={`px-4 py-1.5 rounded-full text-sm font-semibold border-2 ${getStatusColor(shipment.status)} shadow-sm`}>
                           {getStatusLabel(shipment.status)}
                         </span>
                       </div>
-                      <h2 className="text-2xl font-semibold text-slate-900">
+                      <h2 className="text-3xl font-bold text-slate-900 mb-2">
                         {shipment.tracking_number || `Envío #${shipment.shipping_id}`}
                       </h2>
                       {shipment.carrier_name && (
-                        <p className="text-sm text-slate-600">
-                          Transportista: {shipment.carrier_name}
-                        </p>
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Truck className="w-4 h-4" />
+                          <p className="text-sm font-medium">
+                            {shipment.carrier_name}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -282,10 +316,15 @@ function App() {
                 </div>
 
                 {/* Timeline */}
-                <div className="card p-6">
-                  <h3 className="text-base font-semibold text-slate-900 mb-6">
-                    Historial de Seguimiento
-                  </h3>
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 p-8 shadow-xl">
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+                      <MapPin className="w-5 h-5 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900">
+                      Historial de Seguimiento
+                    </h3>
+                  </div>
 
                   <div className="space-y-6">
                     {shipment.logs.map((log, index) => {

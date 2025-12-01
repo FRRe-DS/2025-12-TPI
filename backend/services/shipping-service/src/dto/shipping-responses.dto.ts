@@ -30,11 +30,11 @@ export class ShippingDetailDto {
   @ApiProperty({ name: 'shipping_id' })
   shipping_id: string;
 
-  @ApiProperty({ name: 'order_id' })
-  order_id: string;
+  @ApiProperty({ name: 'order_id', description: 'ID numérico de la compra que origina el envío' })
+  order_id: number;
 
-  @ApiProperty({ name: 'user_id' })
-  user_id: string;
+  @ApiProperty({ name: 'user_id', description: 'ID numérico del usuario' })
+  user_id: number;
 
   @ApiProperty({ name: 'delivery_address' })
   delivery_address: AddressResponseDto;
@@ -71,20 +71,48 @@ export class ShippingDetailDto {
   logs: ShippingLogDto[];
 }
 
+export class PublicShippingTrackingDto {
+  @ApiProperty({ name: 'shipping_id' })
+  shipping_id: string;
+
+  @ApiProperty({ name: 'tracking_number' })
+  tracking_number: string;
+
+  status: string;
+
+  @ApiProperty({ name: 'delivery_address', type: AddressResponseDto })
+  delivery_address: AddressResponseDto;
+
+  @ApiProperty({ name: 'estimated_delivery_at' })
+  estimated_delivery_at: string;
+
+  @ApiProperty({ name: 'created_at' })
+  created_at: string;
+
+  @ApiProperty({ type: [ShippingLogDto] })
+  logs: ShippingLogDto[];
+}
+
 export class ShippingSummaryDto {
   @ApiProperty({ name: 'shipping_id' })
   shipping_id: string;
 
-  @ApiProperty({ name: 'order_id' })
-  order_id: string;
+  @ApiProperty({ name: 'order_id', description: 'ID numérico de la compra que origina el envío' })
+  order_id: number;
 
-  @ApiProperty({ name: 'user_id' })
-  user_id: string;
+  @ApiProperty({ name: 'user_id', description: 'ID numérico del usuario' })
+  user_id: number;
 
   status: string;
 
   @ApiProperty({ name: 'transport_type' })
   transport_type: string;
+
+  @ApiProperty({ name: 'tracking_number', required: false })
+  tracking_number?: string;
+
+  @ApiProperty({ name: 'delivery_address', required: false, type: AddressResponseDto })
+  delivery_address?: AddressResponseDto;
 
   @ApiProperty({ name: 'estimated_delivery_at' })
   estimated_delivery_at: string;

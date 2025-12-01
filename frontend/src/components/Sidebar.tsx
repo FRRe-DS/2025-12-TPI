@@ -23,7 +23,7 @@ import {
 import { envConfig } from '@/app/lib/config/env.config';
 
 // Using text logo instead of image for now
-const logo = "PEPACK";
+const logo = <img src="/pepacklogo.jpeg" alt="PEPACK" className="w-10 h-10" />;
 
 interface SidebarProps {
   activeTab?: string;

@@ -95,11 +95,11 @@ export class CreateShippingResponseDto {
   @ApiProperty({ name: 'shipping_id' })
   shipping_id: string;
 
-  @ApiProperty({ name: 'order_id' })
-  order_id: string;
+  @ApiProperty({ name: 'order_id', description: 'ID numérico de la compra que origina el envío' })
+  order_id: number;
 
-  @ApiProperty({ name: 'user_id' })
-  user_id: string;
+  @ApiProperty({ name: 'user_id', description: 'ID numérico del usuario' })
+  user_id: number;
 
   status: string;
 

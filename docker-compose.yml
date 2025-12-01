@@ -184,6 +184,32 @@ services:
       retries: 3
       start_period: 40s
 
+  # ===================================
+  # TRACKING PORTAL (Portal público para clientes)
+  # ===================================
+  tracking-portal:
+    build:
+      context: ./tracking-portal
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3004
+    container_name: logistics-tracking-portal
+    ports:
+      - "3010:80"
+    environment:
+      - VITE_API_URL=http://localhost:3004
+    depends_on:
+      operator-interface-service:
+        condition: service_healthy
+    networks:
+      - logistics-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
 volumes:
   redis_data:
     driver: local

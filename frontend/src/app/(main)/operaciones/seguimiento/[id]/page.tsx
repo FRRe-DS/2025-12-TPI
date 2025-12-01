@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { shipmentService, ShipmentDTO } from '@/app/lib/middleware/services/shipment.service';
+import { stockService, StockReserva } from '@/app/lib/middleware/services/stock.service';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -28,6 +29,7 @@ export default function ShipmentDetailPage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [newStatus, setNewStatus] = useState('');
+  const [reservation, setReservation] = useState<StockReserva | null>(null);
 
   useEffect(() => {
     loadShipment();
@@ -40,6 +42,21 @@ export default function ShipmentDetailPage() {
       const data = await shipmentService.getShipmentById(id);
       setShipment(data);
       setNewStatus(data.status);
+
+      // Cargar reserva asociada (si tenemos userId y orderReference)
+      if (data.userId && data.orderReference) {
+        try {
+          const reservas = await stockService.listReservas({
+            usuarioId: data.userId,
+            idCompra: data.orderReference,
+          });
+          if (Array.isArray(reservas) && reservas.length > 0) {
+            setReservation(reservas[0]);
+          }
+        } catch (e) {
+          console.error('Error loading reservation for shipment:', e);
+        }
+      }
     } catch (err) {
       console.error('Error loading shipment:', err);
       // Mock data for development
@@ -254,6 +271,11 @@ export default function ShipmentDetailPage() {
             <p className="text-sm text-slate-600 mt-1">
               ID: {shipment.id}
             </p>
+            {shipment.trackingNumber && (
+              <p className="text-xs text-slate-500 mt-1">
+                Tracking: {shipment.trackingNumber}
+              </p>
+            )}
           </div>
           <div>
             {getStatusBadge(shipment.status)}
@@ -330,29 +352,41 @@ export default function ShipmentDetailPage() {
                 <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
                   Origen
                 </div>
-                <div className="text-sm text-slate-900">
-                  {shipment.originAddress.street}
-                </div>
-                <div className="text-sm text-slate-600">
-                  {shipment.originAddress.city}, {shipment.originAddress.state}
-                </div>
-                <div className="text-sm text-slate-600">
-                  {shipment.originAddress.postal_code}, {shipment.originAddress.country}
-                </div>
+                {shipment.originAddress ? (
+                  <>
+                    <div className="text-sm text-slate-900">
+                      {shipment.originAddress.street || 'N/A'}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {shipment.originAddress.city || 'N/A'}, {shipment.originAddress.state || 'N/A'}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {shipment.originAddress.postal_code || 'N/A'}, {shipment.originAddress.country || 'N/A'}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-slate-500 italic">No disponible</div>
+                )}
               </div>
               <div className="border-t border-slate-200 pt-4">
                 <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
                   Destino
                 </div>
-                <div className="text-sm text-slate-900">
-                  {shipment.destinationAddress.street}
-                </div>
-                <div className="text-sm text-slate-600">
-                  {shipment.destinationAddress.city}, {shipment.destinationAddress.state}
-                </div>
-                <div className="text-sm text-slate-600">
-                  {shipment.destinationAddress.postal_code}, {shipment.destinationAddress.country}
-                </div>
+                {shipment.destinationAddress ? (
+                  <>
+                    <div className="text-sm text-slate-900">
+                      {shipment.destinationAddress.street || 'N/A'}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {shipment.destinationAddress.city || 'N/A'}, {shipment.destinationAddress.state || 'N/A'}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {shipment.destinationAddress.postal_code || 'N/A'}, {shipment.destinationAddress.country || 'N/A'}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-slate-500 italic">No disponible</div>
+                )}
               </div>
             </div>
           </div>
@@ -443,6 +477,67 @@ export default function ShipmentDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Historial de estado (logs) */}
+        {shipment.logs && shipment.logs.length > 0 && (
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <h2 className="text-base font-semibold text-slate-900 mb-4">
+              Historial de estado
+            </h2>
+            <div className="space-y-3">
+              {shipment.logs.map((log) => (
+                <div key={log.timestamp} className="flex items-start justify-between">
+                  <div>
+                    <div className="text-sm font-medium text-slate-900">
+                      {log.status}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {log.message}
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {formatDate(log.timestamp)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Información de reserva */}
+        {reservation && (
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <h2 className="text-base font-semibold text-slate-900 mb-4">
+              Reserva de Stock
+            </h2>
+            <div className="space-y-2 text-sm text-slate-700">
+              <div className="flex justify-between">
+                <span className="text-slate-600">ID de reserva</span>
+                <span className="font-mono">{reservation.idReserva}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Estado</span>
+                <span className="font-medium">{reservation.estado}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">ID de compra</span>
+                <span className="font-mono">{reservation.idCompra}</span>
+              </div>
+              {reservation.fechaCreacion && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Creada</span>
+                  <span>{formatDate(reservation.fechaCreacion)}</span>
+                </div>
+              )}
+              {reservation.expiresAt && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Expira</span>
+                  <span>{formatDate(reservation.expiresAt)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Products */}
         <div className="bg-white rounded-lg border border-slate-200 p-6">

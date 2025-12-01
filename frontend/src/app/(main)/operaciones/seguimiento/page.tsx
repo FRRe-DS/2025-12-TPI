@@ -28,9 +28,11 @@ export default function SeguimientoPage() {
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined
       });
-      setShipments(data);
+      // Asegurar que data sea siempre un array
+      const shipmentsArray = Array.isArray(data) ? data : [];
+      setShipments(shipmentsArray);
       // Mock pagination
-      setTotalPages(Math.ceil(data.length / 20));
+      setTotalPages(Math.ceil(shipmentsArray.length / 20));
     } catch (err) {
       console.error('Error loading shipments:', err);
       // Generate mock data for development
@@ -44,6 +46,7 @@ export default function SeguimientoPage() {
     return Array.from({ length: 15 }, (_, i) => ({
       id: `ship-${i + 1}`,
       orderId: 1000 + i,
+      trackingNumber: `TRK${String(1000 + i).padStart(8, '0')}`,
       originAddress: {
         street: 'Calle 100 #15-20',
         city: 'Bogotá',
@@ -112,13 +115,14 @@ export default function SeguimientoPage() {
     });
   };
 
-  const filteredShipments = shipments.filter(shipment => {
+  // Asegurar que shipments sea siempre un array antes de filtrar
+  const filteredShipments = (Array.isArray(shipments) ? shipments : []).filter(shipment => {
     if (filters.search) {
       const search = filters.search.toLowerCase();
       return (
-        shipment.id.toLowerCase().includes(search) ||
-        shipment.orderId.toString().includes(search) ||
-        shipment.destinationAddress.city.toLowerCase().includes(search)
+        shipment.trackingNumber?.toLowerCase().includes(search) ||
+        String(shipment.orderId || '').toLowerCase().includes(search) ||
+        shipment.destinationAddress?.city?.toLowerCase().includes(search)
       );
     }
     return true;
@@ -149,7 +153,7 @@ export default function SeguimientoPage() {
                 type="text"
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                placeholder="ID, orden, ciudad..."
+                placeholder="Tracking, orden, ciudad..."
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -234,16 +238,16 @@ export default function SeguimientoPage() {
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wide">
-                      ID
+                      Tracking Number
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wide">
                       Orden
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wide">
-                      Destino
+                      Estado
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wide">
-                      Estado
+                      Destino
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wide">
                       Transporte
@@ -254,29 +258,26 @@ export default function SeguimientoPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wide">
                       Fecha
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-slate-700 uppercase tracking-wide">
-                      Acciones
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {filteredShipments.map((shipment) => (
                     <tr
                       key={shipment.id}
-                      className="hover:bg-slate-50 transition-colors cursor-pointer"
+                      className="hover:bg-blue-50 transition-colors cursor-pointer"
                       onClick={() => window.location.href = `/operaciones/seguimiento/${shipment.id}`}
                     >
                       <td className="px-4 py-3 text-sm font-mono text-slate-900">
-                        {shipment.id.slice(0, 10)}...
+                        {shipment.trackingNumber || 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-900">
-                        #{shipment.orderId}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-900">
-                        {shipment.destinationAddress.city}
+                        {shipment.orderId && shipment.orderId > 0 ? `#${shipment.orderId}` : 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         {getStatusBadge(shipment.status)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-900">
+                        {shipment.destinationAddress?.city || 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">
                         {shipment.transportMethod?.name || 'N/A'}
@@ -286,15 +287,6 @@ export default function SeguimientoPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">
                         {formatDate(shipment.createdAt)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right">
-                        <Link
-                          href={`/operaciones/seguimiento/${shipment.id}`}
-                          className="text-blue-600 hover:text-blue-700 font-medium"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Ver detalles
-                        </Link>
                       </td>
                     </tr>
                   ))}

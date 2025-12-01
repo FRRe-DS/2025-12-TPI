@@ -1,7 +1,24 @@
 import axios, { AxiosResponse } from 'axios';
 import { ShipmentDetail, ApiError } from '../types/shipment';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://api.logistica-utn.com';
+// URL del gateway (operator-interface-service)
+// Se puede configurar en build time (VITE_API_URL) o runtime (window.__API_URL__)
+// En desarrollo local: http://localhost:3004
+// En Docker: http://operator-interface-service:3004
+const getApiBaseUrl = (): string => {
+  // Prioridad 1: Variable global inyectada en runtime (para Docker)
+  if (typeof window !== 'undefined' && (window as any).__API_URL__) {
+    return (window as any).__API_URL__;
+  }
+  // Prioridad 2: Variable de entorno de Vite (build time)
+  if ((import.meta as any).env?.VITE_API_URL) {
+    return (import.meta as any).env.VITE_API_URL;
+  }
+  // Fallback: localhost para desarrollo
+  return 'http://localhost:3004';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -39,8 +56,15 @@ apiClient.interceptors.response.use(
   }
 );
 
-export const getShipmentDetails = async (shippingId: string): Promise<ShipmentDetail> => {
-  const response = await apiClient.get<ShipmentDetail>(`/shipping/${shippingId}`);
+/**
+ * Busca un envío por tracking number o ID
+ * Primero intenta buscar por tracking number, si falla intenta por ID
+ */
+export const getShipmentDetails = async (trackingNumberOrId: string): Promise<ShipmentDetail> => {
+  // El tracking portal usa un endpoint público reducido que no requiere autenticación
+  const response = await apiClient.get<ShipmentDetail>(
+    `/shipping/public/track/${trackingNumberOrId}`,
+  );
   return response.data;
 };
 

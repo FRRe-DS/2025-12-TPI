@@ -40,7 +40,9 @@ export class JwtGuard implements CanActivate {
       path === '/' ||
       // Rutas de stock/productos pueden ser públicas (catalogo público)
       path.startsWith('/stock/productos') ||
-      path.startsWith('/stock/reservas')
+      path.startsWith('/stock/reservas') ||
+      // Endpoint público de tracking para clientes
+      path.startsWith('/shipping/public/track')
     ) {
       return true;
     }

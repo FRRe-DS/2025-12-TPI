@@ -48,3 +48,5 @@ CHANGELOG.md
 Dockerfile
 .dockerignore
 docker-compose*.yml
+.next
+.next
