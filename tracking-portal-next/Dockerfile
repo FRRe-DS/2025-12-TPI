@@ -28,6 +28,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Install wget for healthcheck
+RUN apk add --no-cache wget
+
 # Copy necessary files from standalone build
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
@@ -37,6 +40,9 @@ EXPOSE 3006
 
 ENV PORT=3006
 ENV HOSTNAME="0.0.0.0"
+
+# Verify server.js exists before starting
+RUN ls -la server.js || (echo "ERROR: server.js not found in .next/standalone" && exit 1)
 
 CMD ["node", "server.js"]
 
