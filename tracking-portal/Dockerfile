@@ -4,7 +4,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY tracking-portal/package.json tracking-portal/pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install pnpm
 RUN npm install -g pnpm
@@ -13,7 +13,7 @@ RUN npm install -g pnpm
 RUN pnpm install --frozen-lockfile
 
 # Copy source code
-COPY tracking-portal/ .
+COPY . .
 
 # Build the application with default API URL (will be replaced at runtime)
 ARG VITE_API_URL=http://operator-interface-service:3004
@@ -30,10 +30,10 @@ RUN apk add --no-cache gettext
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY tracking-portal/nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy entrypoint script
-COPY tracking-portal/docker-entrypoint.sh /docker-entrypoint.sh
+COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 80
