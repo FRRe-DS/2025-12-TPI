@@ -210,6 +210,32 @@ services:
       retries: 3
       start_period: 10s
 
+  # ===================================
+  # TRACKING PORTAL NEXT (Versión Next.js)
+  # ===================================
+  tracking-portal-next:
+    build:
+      context: ./tracking-portal-next
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3004
+    container_name: logistics-tracking-portal-next
+    ports:
+      - "3011:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3004
+    depends_on:
+      operator-interface-service:
+        condition: service_healthy
+    networks:
+      - logistics-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
 volumes:
   redis_data:
     driver: local
