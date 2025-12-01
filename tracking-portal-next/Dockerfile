@@ -16,9 +16,13 @@ RUN pnpm install --frozen-lockfile || pnpm install
 # Copy source code (excluding node_modules via .dockerignore)
 COPY . .
 
-# Build the application
-ARG NEXT_PUBLIC_API_URL=http://operator-interface-service:3004
+# Build arguments - Dokploy los pasa como: docker build --build-arg NEXT_PUBLIC_API_URL=...
+ARG NEXT_PUBLIC_API_URL
+
+# Convertir ARG a ENV para que Next.js lo compile
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+# Build the application
 RUN pnpm run build
 
 # Production stage
@@ -45,4 +49,3 @@ ENV HOSTNAME="0.0.0.0"
 RUN ls -la server.js || (echo "ERROR: server.js not found in .next/standalone" && exit 1)
 
 CMD ["node", "server.js"]
-
