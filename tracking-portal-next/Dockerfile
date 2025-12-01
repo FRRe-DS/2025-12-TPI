@@ -3,12 +3,15 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Copy package files first
 COPY package.json ./
-COPY package-lock.json* ./
+COPY pnpm-lock.yaml* ./
 
 # Install dependencies
-RUN npm ci || npm install
+RUN pnpm install --frozen-lockfile || pnpm install
 
 # Copy source code (excluding node_modules via .dockerignore)
 COPY . .
@@ -16,7 +19,7 @@ COPY . .
 # Build the application
 ARG NEXT_PUBLIC_API_URL=http://operator-interface-service:3004
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-RUN npm run build
+RUN pnpm run build
 
 # Production stage
 FROM node:20-alpine AS runner
