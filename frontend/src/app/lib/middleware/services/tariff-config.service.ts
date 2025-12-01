@@ -32,7 +32,7 @@ export interface CreateTariffConfigDTO {
   validTo?: Date;
 }
 
-export interface UpdateTariffConfigDTO extends Partial<CreateTariffConfigDTO> {}
+export type UpdateTariffConfigDTO = Partial<CreateTariffConfigDTO>;
 
 export interface TariffConfigFilters {
   transportMethodId?: string;

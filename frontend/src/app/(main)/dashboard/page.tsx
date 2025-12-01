@@ -2,25 +2,20 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  Truck,
   Package,
   TrendingUp,
   Clock,
   MapPin,
   MoreVertical,
   Eye,
-  Download,
   RefreshCw,
-  Activity,
   AlertCircle,
   CheckCircle,
-  XCircle,
   Info,
-  Zap,
   Route,
   Timer
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 
 interface Pedido {
   id: number;
@@ -75,7 +70,7 @@ export default function Dashboard() {
 
   const [pedidosRecientes, setPedidosRecientes] = useState<Pedido[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [lastUpdate, setLastUpdate] = useState<string>('Cargando...');
   const [error, setError] = useState<string | null>(null);
   const [backendStatus, setBackendStatus] = useState({ available: true, url: 'Modo Frontend' });
   const [modeInfo, setModeInfo] = useState({ mode: 'mock', features: ['frontend-only'] });
@@ -97,7 +92,7 @@ export default function Dashboard() {
   const checkBackendStatus = () => {
     // Siempre disponible en modo frontend
     setBackendStatus({ available: true, url: 'Modo Frontend' });
-    setModeInfo({ mode: 'mock', features: ['frontend-only'] });
+    setModeInfo({ mode: 'mock', features: ['AGUANTE BOCA, LO LOGRASTE WACHO'] });
   };
 
   const retryBackendConnection = () => {
@@ -105,7 +100,7 @@ export default function Dashboard() {
     setIsLoading(true);
     setTimeout(() => {
       setBackendStatus({ available: true, url: 'Frontend Mode' });
-      setModeInfo({ mode: 'mock', features: ['frontend-only'] });
+      setModeInfo({ mode: 'mock', features: ['GUANTE BOCA, LO LOGRASTE WACHO'] });
       setIsLoading(false);
     }, 1000);
   };
@@ -218,7 +213,7 @@ export default function Dashboard() {
       setDashboardData({
         entregasMensuales: entregasMensuales,
         distribucionZonas: zonasData,
-        pedidosEnProceso: pedidosEnTransito.map((p, i) => ({
+        pedidosEnProceso: pedidosEnTransito.map((p) => ({
           numeroPedido: p.numeroPedido,
           progreso: 20 + Math.random() * 60, // Progreso aleatorio para demo
           id: p.id,
@@ -227,7 +222,8 @@ export default function Dashboard() {
         tiemposEntrega: tiemposEntregaData
       });
 
-      setLastUpdate(new Date());
+      // Guardar como string para evitar hydration mismatch
+      setLastUpdate(new Date().toLocaleTimeString());
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
       setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
@@ -236,92 +232,8 @@ export default function Dashboard() {
     }
   };
 
-  const generateMonthlyData = (resumes: any[]) => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const monthlyCount: Record<string, number> = {};
-
-    // Initialize months
-    months.forEach(month => monthlyCount[month] = 0);
-
-    // Count resumes by month (simplified)
-    resumes.forEach(resume => {
-      try {
-        const date = new Date(resume.uploadDate);
-        const month = months[date.getMonth()];
-        if (month) monthlyCount[month]++;
-      } catch (e) {
-        // Handle invalid date
-      }
-    });
-
-    return months.map(month => ({
-      month,
-      applications: monthlyCount[month] || Math.floor(Math.random() * 30) + 10
-    }));
-  };
-
-  const generateSkillsDistribution = (resumes: any[]) => {
-    const skillCount: Record<string, number> = {};
-    const colors = ['#8B5CF6', '#14B8A6', '#3B82F6', '#F59E0B', '#EF4444'];
-
-    resumes.forEach(resume => {
-      if (resume.analysis?.skills) {
-        resume.analysis.skills.forEach((skill: any) => {
-          skillCount[skill.name] = (skillCount[skill.name] || 0) + 1;
-        });
-      }
-    });
-
-    // Get top 5 skills
-    const sortedSkills = Object.entries(skillCount)
-      .sort(([, a], [, b]) => (b as number) - (a as number))
-      .slice(0, 5);
-
-    if (sortedSkills.length === 0) {
-      // Return default skills if no data
-      return [
-        { name: 'JavaScript', value: 15, color: colors[0] },
-        { name: 'Python', value: 12, color: colors[1] },
-        { name: 'React', value: 10, color: colors[2] },
-        { name: 'Node.js', value: 8, color: colors[3] },
-        { name: 'SQL', value: 6, color: colors[4] }
-      ];
-    }
-
-    return sortedSkills.map(([name, value], index) => ({
-      name,
-      value,
-      color: colors[index] || '#6B7280'
-    }));
-  };
-
-  const generateScoreDistribution = (scores: number[]) => {
-    const ranges = [
-      { range: '0-40', min: 0, max: 40, count: 0 },
-      { range: '41-60', min: 41, max: 60, count: 0 },
-      { range: '61-80', min: 61, max: 80, count: 0 },
-      { range: '81-100', min: 81, max: 100, count: 0 }
-    ];
-
-    scores.forEach(score => {
-      const range = ranges.find(r => score >= r.min && score <= r.max);
-      if (range) range.count++;
-    });
-
-    return ranges.map(r => ({ name: r.range, value: r.count }));
-  };
-
   const refreshData = () => {
     loadDashboardData();
-  };
-
-  const getPrioridadColor = (prioridad: string) => {
-    switch (prioridad) {
-      case 'alta': return 'text-red-600';
-      case 'media': return 'text-yellow-600';
-      case 'baja': return 'text-green-600';
-      default: return 'text-gray-600';
-    }
   };
 
   const getEstadoColor = (estado: string) => {
@@ -340,13 +252,6 @@ export default function Dashboard() {
     background: 'rgba(255, 255, 255, 0.1)',
     border: '1px solid rgba(255, 255, 255, 0.2)',
     boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)'
-  };
-
-  const glassStrongStyle = {
-    backdropFilter: 'blur(20px)',
-    background: 'rgba(255, 255, 255, 0.15)',
-    border: '1px solid rgba(255, 255, 255, 0.3)',
-    boxShadow: '0 12px 40px rgba(31, 38, 135, 0.2)'
   };
 
   const BackendStatusIndicator = () => (
@@ -395,7 +300,7 @@ export default function Dashboard() {
             }`}>
             {modeInfo.mode === 'backend'
               ? 'Sistema completo de gestión logística con optimización de rutas y seguimiento en tiempo real.'
-              : 'Estás experimentando la interfaz completa de PEPACK con datos realistas. Todas las funcionalidades están disponibles para pruebas.'
+              : 'Estás experimentando la interfaz completa de PEPACK con datos realistas. Todas las funcionalidades están disponibles para pruebas de BOCA'
             }
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -452,9 +357,9 @@ export default function Dashboard() {
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>
           <h1 className="text-3xl bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
-            PEPACK - Gestión Logística
+            PEPACK - Gestión Logística y de BOCA
           </h1>
-          <p className="text-gray-600 mt-1">Sistema inteligente de gestión logística y seguimiento de entregas.</p>
+          <p className="text-gray-600 mt-1">Sistema inteligente de gestión logística y seguimiento de entregas de BOCA.</p>
         </div>
         <div className="flex items-center gap-4">
           <BackendStatusIndicator />
@@ -468,7 +373,7 @@ export default function Dashboard() {
           </button>
           <div className="rounded-xl px-6 py-3 shadow-lg border border-white/30" style={glassStyle}>
             <span className="text-sm text-gray-700">
-              Actualizado: {lastUpdate.toLocaleTimeString()}
+              Actualizado: {lastUpdate}
             </span>
           </div>
         </div>
@@ -587,7 +492,7 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={150}>
             <PieChart>
               <Pie
-                data={dashboardData.distribucionZonas as any}
+                data={dashboardData.distribucionZonas as unknown as Array<{ name: string; value: number }>}
                 cx="50%"
                 cy="50%"
                 innerRadius={40}

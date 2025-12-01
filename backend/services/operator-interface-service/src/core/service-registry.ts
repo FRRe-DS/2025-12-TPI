@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import axios, { AxiosError } from 'axios';
 
 /**
  * Representa un servicio registrado en la arquitectura
@@ -40,31 +41,36 @@ export class ServiceRegistry {
    * - Kubernetes service discovery
    */
   private initializeServices() {
-    const baseUrl = process.env.BACKEND_BASE_URL || 'http://localhost';
-
+    // Permitir URLs completas por servicio (mejor para Docker/Kubernetes)
+    // Fallback a URLs locales para desarrollo
     const servicesConfig = [
       {
         name: 'config-service',
-        baseUrl: `${baseUrl}:3003`,
-        routes: ['/config'],
+        baseUrl: process.env.CONFIG_SERVICE_URL || 'http://localhost:3003',
+        routes: ['/config', '/fleet'],
         healthCheckUrl: '/health',
       },
       {
         name: 'shipping-service',
-        baseUrl: `${baseUrl}:3001`,
-        routes: ['/shipping'],
+        baseUrl: process.env.SHIPPING_SERVICE_URL || 'http://localhost:3001',
+        routes: ['/shipping', '/api/logistics'],
         healthCheckUrl: '/health',
       },
       {
         name: 'stock-integration-service',
-        baseUrl: `${baseUrl}:3002`,
+        baseUrl: process.env.STOCK_SERVICE_URL || 'http://localhost:3002',
         routes: ['/stock'],
         healthCheckUrl: '/health',
       },
     ];
 
     for (const config of servicesConfig) {
-      this.registerService(config.name, config.baseUrl, config.routes, config.healthCheckUrl);
+      this.registerService(
+        config.name,
+        config.baseUrl,
+        config.routes,
+        config.healthCheckUrl,
+      );
     }
 
     this.logger.log(`✅ Registered ${this.services.size} services`);
@@ -78,7 +84,7 @@ export class ServiceRegistry {
     name: string,
     baseUrl: string,
     routes: string[],
-    healthCheckUrl: string
+    healthCheckUrl: string,
   ): void {
     this.services.set(name, {
       name,
@@ -101,19 +107,27 @@ export class ServiceRegistry {
 
   /**
    * Encuentra el servicio responsable de una ruta
-   * Ej: "/config/transport-methods" → retorna config-service
+   * Busca el prefijo más largo que coincida.
+   * Ej: "/api/logistics/tracking" -> match "/api/logistics" -> shipping-service
    */
   findServiceByRoute(path: string): RegisteredService | undefined {
-    // Extrae el prefijo de la ruta (ej: "/config" de "/config/transport-methods")
-    const routePrefix = '/' + path.split('/')[1];
+    let bestMatch: RegisteredService | undefined;
+    let longestMatchLength = 0;
 
     for (const service of this.services.values()) {
-      if (service.routes.includes(routePrefix)) {
-        return service;
+      for (const routePrefix of service.routes) {
+        // Verificamos si el path empieza con este prefijo
+        // Aseguramos que coincida el segmento completo (ej: "/api" no matchee "/api-x")
+        if (path.startsWith(routePrefix) && (path.length === routePrefix.length || path[routePrefix.length] === '/')) {
+          if (routePrefix.length > longestMatchLength) {
+            longestMatchLength = routePrefix.length;
+            bestMatch = service;
+          }
+        }
       }
     }
 
-    return undefined;
+    return bestMatch;
   }
 
   /**
@@ -161,14 +175,11 @@ export class ServiceRegistry {
   /**
    * Utility para hacer fetch con timeout
    */
-  private fetchWithTimeout(
-    url: string,
-    timeoutMs: number
-  ): Promise<Response> {
+  private fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
     return Promise.race([
       fetch(url),
       new Promise<Response>((_, reject) =>
-        setTimeout(() => reject(new Error('Health check timeout')), timeoutMs)
+        setTimeout(() => reject(new Error('Health check timeout')), timeoutMs),
       ),
     ]);
   }

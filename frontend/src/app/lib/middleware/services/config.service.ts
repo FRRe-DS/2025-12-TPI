@@ -25,7 +25,7 @@ export interface CreateTransportMethodDTO {
   isActive?: boolean;
 }
 
-export interface UpdateTransportMethodDTO extends Partial<CreateTransportMethodDTO> {}
+export type UpdateTransportMethodDTO = Partial<CreateTransportMethodDTO>;
 
 export interface CoverageZone {
   id: string;
@@ -44,7 +44,7 @@ export interface CreateCoverageZoneDTO {
   isActive?: boolean;
 }
 
-export interface UpdateCoverageZoneDTO extends Partial<CreateCoverageZoneDTO> {}
+export type UpdateCoverageZoneDTO = Partial<CreateCoverageZoneDTO>;
 
 class ConfigService {
   async getTransportMethods(): Promise<TransportMethod[]> {

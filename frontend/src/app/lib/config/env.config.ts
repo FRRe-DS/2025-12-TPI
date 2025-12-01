@@ -9,6 +9,9 @@ interface EnvConfig {
   // API Gateway - único endpoint para el frontend
   apiUrl: string;
 
+  // Frontend URL - para redirecciones de autenticación
+  frontendUrl: string;
+
   // Keycloak (opcional)
   keycloak: {
     url: string;
@@ -27,27 +30,61 @@ interface EnvConfig {
  */
 function getEnvVar(key: string, defaultValue: string = ''): string {
   // En Next.js, las variables NEXT_PUBLIC_* están disponibles en process.env
-  return process.env[key] || defaultValue;
+  const value = process.env[key];
+
+  if (value) {
+    return value;
+  }
+
+  // Logging importante
+  console.warn(`⚠️ Environment variable ${key} is not defined. Using default: "${defaultValue}"`);
+
+  // Si no está definida y estamos en producción, lanzar error
+  if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+    console.error(`❌ CRITICAL: Environment variable ${key} is not defined in production!`);
+    if (key === 'NEXT_PUBLIC_API_URL') {
+      throw new Error(`NEXT_PUBLIC_API_URL must be defined in Dokploy Environment Variables section`);
+    }
+  }
+
+  return defaultValue;
 }
 
 /**
- * Configuración de entorno - se evalúa en tiempo de ejecución
+ * Configuración de entorno - Usa las variables compiladas en build time
+ * En Next.js, NEXT_PUBLIC_* se reemplazan en build, no en runtime
  */
+// Las variables ya están compiladas, simplemente usarlas
+const apiUrl = typeof window !== 'undefined'
+  ? process.env.NEXT_PUBLIC_API_URL
+  : process.env.NEXT_PUBLIC_API_URL;
+
+if (!apiUrl && typeof window !== 'undefined') {
+  console.error('❌ FATAL: NEXT_PUBLIC_API_URL is not defined! Check Dokploy Build Environment Variables.');
+}
+
 export const envConfig: EnvConfig = {
   // Gateway único - todos los requests van aquí
-  apiUrl: getEnvVar('NEXT_PUBLIC_API_URL', 'http://localhost:3004'),
+  // Las variables NEXT_PUBLIC_* se compilan en build time
+  apiUrl: apiUrl || 'http://localhost:3004',
+
+  // Frontend URL - para redirecciones de autenticación
+  // En browser, se detecta automáticamente. En servidor/test, usar variable
+  frontendUrl: typeof window !== 'undefined'
+    ? window.location.origin
+    : (process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'),
 
   // Keycloak config
   keycloak: {
-    url: getEnvVar('NEXT_PUBLIC_KEYCLOAK_URL', 'http://localhost:8080'),
-    realm: getEnvVar('NEXT_PUBLIC_KEYCLOAK_REALM', 'logistica'),
-    clientId: getEnvVar('NEXT_PUBLIC_KEYCLOAK_CLIENT_ID', 'logix-frontend'),
+    url: process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'https://keycloak.mmalgor.com.ar',
+    realm: process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'ds-2025-realm',
+    clientId: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || 'grupo-12',
   },
 
   // Environment detection
-  env: (getEnvVar('NEXT_PUBLIC_ENV', 'development') as EnvConfig['env']),
-  isDevelopment: getEnvVar('NEXT_PUBLIC_ENV', 'development') === 'development',
-  isProduction: getEnvVar('NEXT_PUBLIC_ENV', 'development') === 'production',
+  env: ((process.env.NEXT_PUBLIC_ENV || 'development') as EnvConfig['env']),
+  isDevelopment: (process.env.NEXT_PUBLIC_ENV || 'development') === 'development',
+  isProduction: (process.env.NEXT_PUBLIC_ENV || 'development') === 'production',
 };
 
 /**
@@ -74,11 +111,13 @@ if (envConfig.isDevelopment && typeof window === 'undefined') {
 }
 
 /**
- * Log de configuración (solo en desarrollo)
+ * Log de configuración (siempre, para debugging)
  */
-if (envConfig.isDevelopment && typeof window !== 'undefined') {
+if (typeof window !== 'undefined') {
   console.log('🔧 Env Config:', {
     apiUrl: envConfig.apiUrl,
+    frontendUrl: envConfig.frontendUrl,
     env: envConfig.env,
+    keycloakUrl: envConfig.keycloak.url,
   });
 }
