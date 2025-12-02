@@ -547,23 +547,39 @@ export class ShippingService {
     const transportMethod = await this.prisma.transportMethod.findFirst({
       where: { code: transportCode, isActive: true },
     });
-    const transportMethodId =
-      transportMethod?.id || 'default-road-transport';
+    let tariff: any;
 
-    const tariff = await this.tariffService.calculateTariff({
-      transportMethodId,
-      billableWeight: totalWeight,
-      distance: distanceRes.distance,
-      environment,
-    });
+    if (transportMethod) {
+      try {
+        tariff = await this.tariffService.calculateTariff({
+          transportMethodId: transportMethod.id,
+          billableWeight: totalWeight,
+          distance: distanceRes.distance,
+          environment,
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Failed to calculate tariff for ${transportCode}: ${error.message}`,
+        );
+      }
+    }
+
+    const mockTransport = this.mapTransportTypeToMock(transportCode);
+    const roundedDistance = Math.round(distanceRes.distance * 100) / 100;
+    const roundedPhysicalWeight = Math.round(totalWeight * 100) / 100;
+
+    if (!tariff) {
+      tariff = this.buildMockTariff(
+        roundedDistance,
+        roundedPhysicalWeight,
+        mockTransport,
+      );
+    }
 
     const productTotal = productCosts.reduce((sum, p) => sum + p.cost, 0);
     const totalCost = productTotal + tariff.totalCost;
 
-    const mockTransport = this.mapTransportTypeToMock(transportCode);
 
-    const roundedDistance = Math.round(distanceRes.distance * 100) / 100;
-    const roundedPhysicalWeight = Math.round(totalWeight * 100) / 100;
 
     return {
       quote_id: this.mockData.generateTrackingNumber(),
@@ -743,18 +759,34 @@ export class ShippingService {
       where: { code: transportMethodCode, isActive: true },
     });
 
-    if (!transportMethod) {
-      throw new BadRequestException(
-        `Transport method '${transportMethodCode}' not available`,
-      );
+    let tariff: any;
+
+    if (transportMethod) {
+      try {
+        tariff = await this.tariffService.calculateTariff({
+          transportMethodId: transportMethod.id,
+          billableWeight: totalWeight,
+          distance: distanceRes.distance,
+          environment: this.configService.get('NODE_ENV') || 'development',
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Failed to calculate tariff for ${transportMethodCode}: ${error.message}`,
+        );
+      }
     }
 
-    const tariff = await this.tariffService.calculateTariff({
-      transportMethodId: transportMethod.id,
-      billableWeight: totalWeight,
-      distance: distanceRes.distance,
-      environment: this.configService.get('NODE_ENV') || 'development',
-    });
+    if (!tariff) {
+      const mockTransport = this.mapTransportTypeToMock(transportMethodCode);
+      const roundedDistance = Math.round(distanceRes.distance * 100) / 100;
+      const roundedPhysicalWeight = Math.round(totalWeight * 100) / 100;
+
+      tariff = this.buildMockTariff(
+        roundedDistance,
+        roundedPhysicalWeight,
+        mockTransport,
+      );
+    }
 
     const productTotal = stockInfo.reduce((sum, stock) => {
       const product = dto.products.find((p) => p.id === stock.id);
@@ -766,8 +798,9 @@ export class ShippingService {
 
     const totalCost = productTotal + tariff.totalCost;
     const trackingNumber = this.mockData.generateTrackingNumber();
+    const mockTransport = this.mapTransportTypeToMock(transportMethodCode);
     const deliveryDays = this.mockData.getEstimatedDeliveryTime(
-      transportMethodCode as any,
+      mockTransport,
       distanceRes.distance,
     );
 

@@ -274,7 +274,7 @@ export default function SeguimientoPage() {
                     <tr
                       key={shipment.id}
                       className="hover:bg-blue-50 transition-colors cursor-pointer"
-                      onClick={() => router.push(`/ operaciones / seguimiento / ${shipment.id} `)}
+                      onClick={() => router.push(`/operaciones/seguimiento/${shipment.id}`)}
                     >
                       <td className="px-4 py-3 text-sm font-mono text-slate-900">
                         {shipment.trackingNumber || 'N/A'}
