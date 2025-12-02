@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { shipmentService, ShipmentDTO } from '@/app/lib/middleware/services/shipment.service';
-import { stockService, StockReserva } from '@/app/lib/middleware/services/stock.service';
+import { shipmentService, ShipmentDTO } from '@/lib/middleware/services/shipment.service';
+import { stockService, StockReserva } from '@/lib/middleware/services/stock.service';
+import { useVehicles } from '@/lib/middleware/stores/composables/useVehicles';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -16,7 +17,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/app/components/ui/confirm-dialog';
+} from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 export default function ShipmentDetailPage() {
   const params = useParams();
@@ -30,6 +42,27 @@ export default function ShipmentDetailPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [reservation, setReservation] = useState<StockReserva | null>(null);
+
+  const { items: vehicles } = useVehicles();
+  const [isAssigningVehicle, setIsAssigningVehicle] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+
+  const handleAssignVehicle = async () => {
+    if (!shipment || !selectedVehicleId) return;
+
+    setIsUpdating(true);
+    try {
+      await shipmentService.updateShipment(shipment.id, { vehicleId: selectedVehicleId });
+      toast.success('Vehículo asignado exitosamente');
+      setIsAssigningVehicle(false);
+      await loadShipment();
+    } catch (err) {
+      console.error('Error assigning vehicle:', err);
+      toast.error('Error al asignar vehículo');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   useEffect(() => {
     loadShipment();
@@ -337,6 +370,49 @@ export default function ShipmentDetailPage() {
                 </AlertDialogContent>
               </AlertDialog>
             )}
+            {/* Assign Vehicle */}
+            <Dialog open={isAssigningVehicle} onOpenChange={setIsAssigningVehicle}>
+              <DialogTrigger asChild>
+                <button
+                  disabled={isUpdating || !canUpdateStatus}
+                  className="px-4 py-2 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {shipment.vehicle ? 'Cambiar Vehículo' : 'Asignar Vehículo'}
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Asignar Vehículo</DialogTitle>
+                  <DialogDescription>
+                    Seleccione un vehículo para asignar a este envío.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <Label htmlFor="vehicle-select" className="mb-2 block">Vehículo</Label>
+                  <select
+                    id="vehicle-select"
+                    value={selectedVehicleId}
+                    onChange={(e) => setSelectedVehicleId(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar vehículo...</option>
+                    {vehicles.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.license_plate} - {v.model} ({v.capacityKg}kg)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAssigningVehicle(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleAssignVehicle} disabled={!selectedVehicleId || isUpdating}>
+                    {isUpdating ? 'Asignando...' : 'Guardar'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 

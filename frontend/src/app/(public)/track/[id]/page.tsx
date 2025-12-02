@@ -3,8 +3,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { shipmentService, PublicTrackingDTO } from '@/app/lib/middleware/services/shipment.service';
-import { generateMockTrackingData } from '@/app/lib/middleware/services/mock-tracking-data';
+import { shipmentService, PublicTrackingDTO } from '@/lib/middleware/services/shipment.service';
+import { generateMockTrackingData } from '@/lib/middleware/services/mock-tracking-data';
 
 export default function TrackingPage() {
   const params = useParams();
@@ -187,11 +187,10 @@ export default function TrackingPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setAutoRefresh(!autoRefresh)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                      autoRefresh
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${autoRefresh
                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                         : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                    }`}
+                      }`}
                   >
                     {autoRefresh ? 'Auto-refresh: ON' : 'Auto-refresh: OFF'}
                   </button>
@@ -233,8 +232,8 @@ export default function TrackingPage() {
                     {tracking.status === 'DELIVERED' && tracking.actualDeliveryDate
                       ? formatDate(tracking.actualDeliveryDate)
                       : tracking.estimatedDeliveryDate
-                      ? formatDate(tracking.estimatedDeliveryDate)
-                      : 'No disponible'}
+                        ? formatDate(tracking.estimatedDeliveryDate)
+                        : 'No disponible'}
                   </p>
                 </div>
               </div>
@@ -260,34 +259,30 @@ export default function TrackingPage() {
                       {/* Timeline Dot */}
                       <div className="relative flex-shrink-0">
                         <div
-                          className={`w-4 h-4 rounded-full border-2 ${
-                            eventStatusType === 'completed'
+                          className={`w-4 h-4 rounded-full border-2 ${eventStatusType === 'completed'
                               ? 'bg-emerald-500 border-emerald-500'
                               : eventStatusType === 'current'
-                              ? 'bg-blue-500 border-blue-500'
-                              : 'bg-white border-slate-300'
-                          }`}
+                                ? 'bg-blue-500 border-blue-500'
+                                : 'bg-white border-slate-300'
+                            }`}
                         />
                       </div>
 
                       {/* Event Details */}
                       <div className="flex-1 pb-6">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-1">
-                          <h4 className={`text-sm font-medium ${
-                            eventStatusType === 'pending' ? 'text-slate-500' : 'text-slate-900'
-                          }`}>
+                          <h4 className={`text-sm font-medium ${eventStatusType === 'pending' ? 'text-slate-500' : 'text-slate-900'
+                            }`}>
                             {event.description}
                           </h4>
-                          <span className={`text-xs ${
-                            eventStatusType === 'pending' ? 'text-slate-400' : 'text-slate-600'
-                          }`}>
+                          <span className={`text-xs ${eventStatusType === 'pending' ? 'text-slate-400' : 'text-slate-600'
+                            }`}>
                             {formatDate(event.timestamp)}
                           </span>
                         </div>
                         {event.location && (
-                          <p className={`text-xs ${
-                            eventStatusType === 'pending' ? 'text-slate-400' : 'text-slate-600'
-                          }`}>
+                          <p className={`text-xs ${eventStatusType === 'pending' ? 'text-slate-400' : 'text-slate-600'
+                            }`}>
                             {event.location}
                           </p>
                         )}

@@ -4,7 +4,6 @@ import {
   CreateShippingRequestSchema,
   ShippingDetailSchema,
   TransportMethodSchema,
-  RouteSchema,
 } from './schemas/public-api.schemas';
 
 /**
@@ -47,13 +46,5 @@ export class DocsController {
   @ApiResponse({ status: 200, type: [TransportMethodSchema] })
   getTransportMethods() { return null; }
 
-  // ==========================================
-  // FLEET DOCS
-  // ==========================================
-  @ApiTags('fleet')
-  @Get('/fleet/routes')
-  @ApiOperation({ summary: 'List Routes (Proxy)' })
-  @ApiResponse({ status: 200, type: [RouteSchema] })
-  getRoutes() { return null; }
 }
 

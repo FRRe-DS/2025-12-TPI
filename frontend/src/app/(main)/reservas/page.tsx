@@ -43,12 +43,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useReservas } from '@/app/lib/middleware/stores/composables/useReservas';
+import { useReservas } from '@/lib/middleware/stores/composables/useReservas';
 import type {
   StockReserva,
   StockReservaEstado,
   StockReservaProducto,
-} from '@/app/lib/middleware/services/stock.service';
+} from '@/lib/middleware/services/stock.service';
 
 type SortOption = 'idReserva' | 'fechaCreacion' | 'estado' | 'usuarioId' | 'idCompra';
 type SortDirection = 'asc' | 'desc';
@@ -121,14 +121,14 @@ export default function ReservasPage() {
     if (!dateString) {
       return 'Fecha no disponible';
     }
-    
+
     const date = new Date(dateString);
-    
+
     // Verificar si la fecha es válida
     if (isNaN(date.getTime())) {
       return 'Fecha inválida';
     }
-    
+
     try {
       return new Intl.DateTimeFormat('es-AR', {
         year: 'numeric',
@@ -194,7 +194,7 @@ export default function ReservasPage() {
 
   const formatVolume = (productos: ReservaProducto[] | undefined): string => {
     const cm3 = calculateVolumeCm3(productos);
-    
+
     if (cm3 === null) {
       return 'N/A - Sin dimensiones';
     }
@@ -465,11 +465,10 @@ export default function ReservasPage() {
                   <button
                     key={option}
                     onClick={() => handleSortChange(option)}
-                    className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
-                      sortBy === option
-                        ? 'bg-white text-blue-600'
-                        : 'bg-white/10 text-white hover:bg-white/20'
-                    }`}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${sortBy === option
+                      ? 'bg-white text-blue-600'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                      }`}
                   >
                     {option === 'idReserva' && 'ID'}
                     {option === 'fechaCreacion' && 'Fecha'}
@@ -657,9 +656,8 @@ export default function ReservasPage() {
                           <Calendar className="w-4 h-4 text-gray-600" />
                           <span className="text-gray-700 font-medium">Expira:</span>
                           <span
-                            className={`font-semibold ${
-                              expired ? 'text-red-700' : 'text-gray-900'
-                            }`}
+                            className={`font-semibold ${expired ? 'text-red-700' : 'text-gray-900'
+                              }`}
                           >
                             {formatDate(reserva.expiresAt)}
                             {expired && ' (Expirada)'}
@@ -683,11 +681,10 @@ export default function ReservasPage() {
                             <div className="text-xs font-medium text-cyan-700 mb-0.5">
                               Volumen Total
                             </div>
-                            <div className={`text-sm font-semibold ${
-                              calculateVolumeCm3(reserva.productos) === null
-                                ? 'text-gray-600'
-                                : 'text-cyan-900'
-                            }`}>
+                            <div className={`text-sm font-semibold ${calculateVolumeCm3(reserva.productos) === null
+                              ? 'text-gray-600'
+                              : 'text-cyan-900'
+                              }`}>
                               {formatVolume(reserva.productos)}
                             </div>
                           </div>
@@ -854,16 +851,16 @@ export default function ReservasPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={executeReservaAction}
-          disabled={updatingId !== null}
+              disabled={updatingId !== null}
               className={
                 confirmDialog.action === 'confirmar'
                   ? 'bg-green-600 hover:bg-green-700'
                   : confirmDialog.action === 'cancelar'
-                  ? 'bg-red-600 hover:bg-red-700'
-                  : 'bg-yellow-600 hover:bg-yellow-700'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-yellow-600 hover:bg-yellow-700'
               }
             >
-          {updatingId !== null ? (
+              {updatingId !== null ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   Procesando...
@@ -872,8 +869,8 @@ export default function ReservasPage() {
                 confirmDialog.action === 'confirmar'
                   ? 'Confirmar'
                   : confirmDialog.action === 'cancelar'
-                  ? 'Cancelar'
-                  : 'Marcar Pendiente'
+                    ? 'Cancelar'
+                    : 'Marcar Pendiente'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

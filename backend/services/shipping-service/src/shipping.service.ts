@@ -146,7 +146,7 @@ export class ShippingService {
   ): boolean {
     return Boolean(
       dto.origin &&
-        (dto.destination || dto.delivery_address),
+      (dto.destination || dto.delivery_address),
     );
   }
 
@@ -367,15 +367,13 @@ export class ShippingService {
       dto.products.map(async (product) => {
         if (typeof product.weight !== 'number') {
           throw new BadRequestException(
-            `Product ${
-              product.productId ?? product.id
+            `Product ${product.productId ?? product.id
             } must include weight in kilograms`,
           );
         }
         if (product.weight <= 0) {
           throw new BadRequestException(
-            `Product ${
-              product.productId ?? product.id
+            `Product ${product.productId ?? product.id
             } must include weight greater than zero`,
           );
         }
@@ -415,15 +413,15 @@ export class ShippingService {
 
     let tariff:
       | {
-          totalCost: number;
-          breakdown: {
-            baseTariff: number;
-            weightCost: number;
-            distanceCost: number;
-            billableWeight: number;
-            distance: number;
-          };
-        }
+        totalCost: number;
+        breakdown: {
+          baseTariff: number;
+          weightCost: number;
+          distanceCost: number;
+          billableWeight: number;
+          distance: number;
+        };
+      }
       | undefined;
     if (transportMethod) {
       try {
@@ -812,6 +810,8 @@ export class ShippingService {
         totalCost,
         currency: 'ARS',
         estimatedDeliveryAt: estimatedDelivery,
+        vehicleId: dto.vehicleId,
+        reservationId: dto.reservationId,
         products: {
           create: dto.products.map((p) => ({
             productId: p.id!,
@@ -875,6 +875,7 @@ export class ShippingService {
         where,
         include: {
           products: true,
+          vehicle: true,
         },
         orderBy: {
           createdAt: 'desc',
@@ -901,6 +902,14 @@ export class ShippingService {
         delivery_address: this.mapAddressResponse('delivery', s) || undefined,
         estimated_delivery_at: s.estimatedDeliveryAt.toISOString(),
         created_at: s.createdAt.toISOString(),
+        vehicle_id: s.vehicleId || undefined,
+        reservation_id: s.reservationId || undefined,
+        vehicle: s.vehicle ? {
+          id: s.vehicle.id,
+          licensePlate: s.vehicle.license_plate,
+          model: s.vehicle.model,
+          capacity: s.vehicle.capacityKg,
+        } : undefined,
       })),
       total,
       page: pageNumber,
@@ -917,6 +926,7 @@ export class ShippingService {
       where: { trackingNumber: trackingNumber.trim() },
       include: {
         products: true,
+        vehicle: true,
         logs: {
           orderBy: {
             timestamp: 'desc',
@@ -949,6 +959,14 @@ export class ShippingService {
       estimated_delivery_at: shipping.estimatedDeliveryAt.toISOString(),
       created_at: shipping.createdAt.toISOString(),
       updated_at: shipping.updatedAt.toISOString(),
+      vehicle_id: shipping.vehicleId || undefined,
+      reservation_id: shipping.reservationId || undefined,
+      vehicle: shipping.vehicle ? {
+        id: shipping.vehicle.id,
+        licensePlate: shipping.vehicle.license_plate,
+        model: shipping.vehicle.model,
+        capacity: shipping.vehicle.capacityKg,
+      } : undefined,
       logs: shipping.logs.map((log) => ({
         timestamp: log.timestamp.toISOString(),
         status: log.status,
@@ -1002,6 +1020,7 @@ export class ShippingService {
       where: { id },
       include: {
         products: true,
+        vehicle: true,
         logs: {
           orderBy: {
             timestamp: 'desc',
@@ -1034,7 +1053,122 @@ export class ShippingService {
       estimated_delivery_at: shipping.estimatedDeliveryAt.toISOString(),
       created_at: shipping.createdAt.toISOString(),
       updated_at: shipping.updatedAt.toISOString(),
+      vehicle_id: shipping.vehicleId || undefined,
+      reservation_id: shipping.reservationId || undefined,
+      vehicle: shipping.vehicle ? {
+        id: shipping.vehicle.id,
+        licensePlate: shipping.vehicle.license_plate,
+        model: shipping.vehicle.model,
+        capacity: shipping.vehicle.capacityKg,
+      } : undefined,
       logs: shipping.logs.map((log) => ({
+        timestamp: log.timestamp.toISOString(),
+        status: log.status,
+        message: log.message,
+      })),
+    };
+  }
+
+  async updateShipment(
+    id: string,
+    dto: Partial<CreateShippingRequestDto> & { status?: string },
+  ): Promise<ShippingDetailDto> {
+    this.ensureValidUuid(id, 'Shipment id');
+
+    const shipment = await this.prisma.shipment.findUnique({
+      where: { id },
+    });
+
+    if (!shipment) {
+      throw new NotFoundException('Shipment not found');
+    }
+
+    const data: any = {};
+    if (dto.vehicleId) data.vehicleId = dto.vehicleId;
+    if (dto.reservationId) data.reservationId = dto.reservationId;
+    if (dto.status) data.status = dto.status;
+
+    // Call Stock Service to confirm reservation if vehicle is assigned
+    if (dto.vehicleId && (dto.reservationId || shipment.reservationId)) {
+      const resId = dto.reservationId || shipment.reservationId;
+      if (resId && shipment.userId) {
+        await this.confirmReservation(resId, shipment.userId);
+      }
+    }
+
+    const updated = await this.prisma.shipment.update({
+      where: { id },
+      data: {
+        ...data,
+        updatedAt: new Date(),
+        logs: {
+          create: {
+            status: dto.status || shipment.status,
+            message: dto.vehicleId ? `Vehicle assigned: ${dto.vehicleId}` : 'Shipment updated',
+          },
+        },
+      },
+      include: {
+        products: true,
+        vehicle: true,
+        logs: {
+          orderBy: {
+            timestamp: 'desc',
+          },
+        },
+      },
+    });
+
+    return this.buildShippingDetailResponse(updated);
+  }
+
+  private async confirmReservation(reservationId: string, userId: number): Promise<void> {
+    try {
+      const idReserva = parseInt(reservationId, 10);
+      if (isNaN(idReserva)) {
+        this.logger.warn(`Invalid reservation ID format: ${reservationId}`);
+        return;
+      }
+
+      const url = `${this.stockServiceUrl}/stock/reservas/${idReserva}?usuarioId=${userId}`;
+      await lastValueFrom(this.httpService.patch(url, { estado: 'confirmado' }));
+      this.logger.log(`Reservation ${idReserva} confirmed for user ${userId}`);
+    } catch (error) {
+      this.logger.error(`Error confirming reservation ${reservationId}`, error);
+      // We log but don't block the flow to avoid getting stuck if stock service is down
+    }
+  }
+
+  private buildShippingDetailResponse(shipping: any): ShippingDetailDto {
+    return {
+      shipping_id: shipping.id,
+      order_id: shipping.orderId,
+      user_id: shipping.userId,
+      delivery_address: this.mapAddressResponse('delivery', shipping)!,
+      departure_address: this.mapAddressResponse('departure', shipping),
+      products: shipping.products.map((p: any) => ({
+        product_id: p.productId,
+        quantity: p.quantity,
+        reference: p.productReference ?? `${p.productId}`,
+      })),
+      status: shipping.status,
+      transport_type: shipping.transportType,
+      tracking_number: shipping.trackingNumber || undefined,
+      carrier_name: shipping.carrierName || undefined,
+      total_cost: Number(shipping.totalCost),
+      currency: shipping.currency,
+      estimated_delivery_at: shipping.estimatedDeliveryAt.toISOString(),
+      created_at: shipping.createdAt.toISOString(),
+      updated_at: shipping.updatedAt.toISOString(),
+      vehicle_id: shipping.vehicleId || undefined,
+      reservation_id: shipping.reservationId || undefined,
+      vehicle: shipping.vehicle ? {
+        id: shipping.vehicle.id,
+        licensePlate: shipping.vehicle.license_plate,
+        model: shipping.vehicle.model,
+        capacity: shipping.vehicle.capacityKg,
+      } : undefined,
+      logs: shipping.logs.map((log: any) => ({
         timestamp: log.timestamp.toISOString(),
         status: log.status,
         message: log.message,
@@ -1070,6 +1204,7 @@ export class ShippingService {
       },
       include: {
         products: true,
+        vehicle: true,
         logs: {
           orderBy: {
             timestamp: 'desc',
@@ -1098,6 +1233,14 @@ export class ShippingService {
       estimated_delivery_at: updated.estimatedDeliveryAt.toISOString(),
       created_at: updated.createdAt.toISOString(),
       updated_at: updated.updatedAt.toISOString(),
+      vehicle_id: updated.vehicleId || undefined,
+      reservation_id: updated.reservationId || undefined,
+      vehicle: updated.vehicle ? {
+        id: updated.vehicle.id,
+        licensePlate: updated.vehicle.license_plate,
+        model: updated.vehicle.model,
+        capacity: updated.vehicle.capacityKg,
+      } : undefined,
       logs: updated.logs.map((log) => ({
         timestamp: log.timestamp.toISOString(),
         status: log.status,

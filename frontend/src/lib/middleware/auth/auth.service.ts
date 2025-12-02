@@ -1,4 +1,4 @@
-import { getKeycloak, keycloakInitOptions } from '../../../app/lib/middleware/auth/keycloak.config';
+import { getKeycloak, initializeKeycloak, keycloakInitOptions } from './keycloak.config';
 import { envConfig } from '../../config/env.config';
 
 export class AuthService {
@@ -11,11 +11,11 @@ export class AuthService {
 
   async init(): Promise<boolean> {
     try {
-      const keycloak = getKeycloak();
+      let keycloak = getKeycloak();
       if (!keycloak) {
-        console.warn('⚠️ Keycloak no está inicializado');
-        return false;
+        keycloak = initializeKeycloak();
       }
+
       const authenticated = await keycloak.init(keycloakInitOptions);
       if (authenticated && keycloak.token) {
         if (typeof window !== 'undefined') {
@@ -23,28 +23,33 @@ export class AuthService {
         }
       }
       return authenticated;
-    } catch {
+    } catch (error) {
+      console.error('Auth init error:', error);
       return false;
     }
   }
 
   async login(redirectUri?: string): Promise<void> {
-    const keycloak = getKeycloak();
+    let keycloak = getKeycloak();
     if (!keycloak) {
-      console.error('❌ Keycloak no está inicializado');
-      return;
+      keycloak = initializeKeycloak();
     }
-    await keycloak.login({ redirectUri: redirectUri || envConfig.frontendUrl });
+
+    // Asegurar que el redirectUri coincida con el configurado en keycloak.config.ts
+    const defaultRedirectUri = typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback`
+      : `${envConfig.frontendUrl}/auth/callback`;
+
+    await keycloak.login({ redirectUri: redirectUri || defaultRedirectUri });
   }
 
   async logout(redirectUri?: string): Promise<void> {
-    const keycloak = getKeycloak();
+    let keycloak = getKeycloak();
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
     }
     if (!keycloak) {
-      console.error('❌ Keycloak no está inicializado');
-      return;
+      keycloak = initializeKeycloak();
     }
     await keycloak.logout({ redirectUri: redirectUri || envConfig.frontendUrl });
   }
@@ -56,10 +61,9 @@ export class AuthService {
 
   async refreshToken(minValidity = 60): Promise<boolean> {
     try {
-      const keycloak = getKeycloak();
+      let keycloak = getKeycloak();
       if (!keycloak) {
-        console.warn('⚠️ Keycloak no está inicializado');
-        return false;
+        keycloak = initializeKeycloak();
       }
       const refreshed = await keycloak.updateToken(minValidity);
       if (refreshed && keycloak.token) {

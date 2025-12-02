@@ -21,7 +21,6 @@ model TransportMethod {
   isActive      Boolean?       @default(true) @map("is_active")
   createdAt     DateTime?      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime?      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  routes        Route[]
   tariffConfigs TariffConfig[]
   vehicles      Vehicle[]
 
@@ -38,7 +37,6 @@ model CoverageZone {
   isActive    Boolean?  @default(true) @map("is_active")
   createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  routes      Route[]
 
   @@index([isActive], map: "idx_coverage_zones_active")
   @@index([postalCodes], map: "idx_coverage_zones_postal_codes", type: Gin)
@@ -80,9 +78,9 @@ model Vehicle {
   driverId          String?          @map("driver_id") @db.Uuid
   createdAt         DateTime?        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime?        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  routes            Route[]
   driver            Driver?          @relation(fields: [driverId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_vehicles_driver")
   transportMethod   TransportMethod? @relation(fields: [transportMethodId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_vehicles_transport_method")
+  shipments         Shipment[]
 
   @@index([license_plate], map: "idx_vehicles_license_plate")
   @@index([status], map: "idx_vehicles_status")
@@ -103,64 +101,12 @@ model Driver {
   status        String    @db.VarChar(20)
   createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  routes        Route[]
   vehicles      Vehicle[]
 
   @@index([employeeId], map: "idx_drivers_employee_id")
   @@index([email], map: "idx_drivers_email")
   @@index([status], map: "idx_drivers_status")
   @@map("drivers")
-}
-
-model Route {
-  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name              String          @db.VarChar(100)
-  description       String?
-  status            String          @db.VarChar(20)
-  startDate         DateTime        @map("start_date") @db.Timestamptz(6)
-  endDate           DateTime?       @map("end_date") @db.Timestamptz(6)
-  transportMethodId String          @map("transport_method_id") @db.Uuid
-  vehicleId         String?         @map("vehicle_id") @db.Uuid
-  driverId          String?         @map("driver_id") @db.Uuid
-  coverageZoneId    String?         @map("coverage_zone_id") @db.Uuid
-  createdAt         DateTime?       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime?       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  stops             RouteStop[]
-  coverageZone      CoverageZone?   @relation(fields: [coverageZoneId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_routes_coverage_zone")
-  driver            Driver?         @relation(fields: [driverId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_routes_driver")
-  transportMethod   TransportMethod @relation(fields: [transportMethodId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_routes_transport_method")
-  vehicle           Vehicle?        @relation(fields: [vehicleId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_routes_vehicle")
-
-  @@index([status], map: "idx_routes_status")
-  @@index([startDate], map: "idx_routes_start_date")
-  @@index([transportMethodId], map: "idx_routes_transport_method")
-  @@index([coverageZoneId], map: "idx_routes_coverage_zone")
-  @@index([driverId], map: "idx_routes_driver")
-  @@index([vehicleId], map: "idx_routes_vehicle")
-  @@map("routes")
-}
-
-model RouteStop {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  routeId       String    @map("route_id") @db.Uuid
-  shipmentId    String?   @unique @map("shipment_id") @db.Uuid
-  sequence      Int
-  type          String    @db.VarChar(20)
-  address       Json
-  coordinates   Json?
-  scheduledTime DateTime? @map("scheduled_time") @db.Timestamptz(6)
-  actualTime    DateTime? @map("actual_time") @db.Timestamptz(6)
-  status        String    @db.VarChar(20)
-  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  route         Route     @relation(fields: [routeId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_route_stops_route")
-  shipment      Shipment? @relation(fields: [shipmentId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_route_stops_shipment")
-
-  @@index([routeId], map: "idx_route_stops_route")
-  @@index([shipmentId], map: "idx_route_stops_shipment")
-  @@index([sequence], map: "idx_route_stops_sequence")
-  @@index([status], map: "idx_route_stops_status")
-  @@map("route_stops")
 }
 
 model Shipment {
@@ -198,9 +144,12 @@ model Shipment {
   createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  vehicleId             String?          @map("vehicle_id") @db.Uuid
+  reservationId         String?          @map("reservation_id") @db.VarChar(100)
+
   products              ShipmentProduct[]
   logs                  ShipmentLog[]
-  routeStop             RouteStop?
+  vehicle               Vehicle?         @relation(fields: [vehicleId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_shipments_vehicle")
 
   @@index([orderId], map: "idx_shipments_order")
   @@index([userId], map: "idx_shipments_user")

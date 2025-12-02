@@ -13,7 +13,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { useReports } from '@/app/lib/middleware/stores/composables/useReports';
+import { useReports } from '@/lib/middleware/stores/composables/useReports';
 import { toast } from 'sonner';
 
 type DateRangeOption = 'today' | '7d' | '30d' | 'custom';
@@ -107,31 +107,28 @@ export default function ReportesPage() {
             <div className="flex gap-1 bg-white rounded-lg border border-slate-200 p-1">
               <button
                 onClick={() => handleRangeChange('today')}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                  selectedRange === 'today'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
-                }`}
+                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedRange === 'today'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
               >
                 Hoy
               </button>
               <button
                 onClick={() => handleRangeChange('7d')}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                  selectedRange === '7d'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
-                }`}
+                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedRange === '7d'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
               >
                 7 días
               </button>
               <button
                 onClick={() => handleRangeChange('30d')}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                  selectedRange === '30d'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
-                }`}
+                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedRange === '30d'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
               >
                 30 días
               </button>
@@ -139,11 +136,10 @@ export default function ReportesPage() {
 
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                autoRefresh
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${autoRefresh
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                }`}
             >
               {autoRefresh ? 'Auto-refresh: ON' : 'Auto-refresh: OFF'}
             </button>
@@ -185,31 +181,28 @@ export default function ReportesPage() {
                   <div className="flex gap-1">
                     <button
                       onClick={() => setActiveTab('today')}
-                      className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
-                        activeTab === 'today'
-                          ? 'bg-slate-900 text-white'
-                          : 'text-slate-600 hover:bg-slate-100'
-                      }`}
+                      className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${activeTab === 'today'
+                        ? 'bg-slate-900 text-white'
+                        : 'text-slate-600 hover:bg-slate-100'
+                        }`}
                     >
                       D
                     </button>
                     <button
                       onClick={() => setActiveTab('week')}
-                      className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
-                        activeTab === 'week'
-                          ? 'bg-slate-900 text-white'
-                          : 'text-slate-600 hover:bg-slate-100'
-                      }`}
+                      className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${activeTab === 'week'
+                        ? 'bg-slate-900 text-white'
+                        : 'text-slate-600 hover:bg-slate-100'
+                        }`}
                     >
                       S
                     </button>
                     <button
                       onClick={() => setActiveTab('month')}
-                      className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
-                        activeTab === 'month'
-                          ? 'bg-slate-900 text-white'
-                          : 'text-slate-600 hover:bg-slate-100'
-                      }`}
+                      className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${activeTab === 'month'
+                        ? 'bg-slate-900 text-white'
+                        : 'text-slate-600 hover:bg-slate-100'
+                        }`}
                     >
                       M
                     </button>

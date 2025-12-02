@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { envConfig } from '@/app/lib/config/env.config';
+import { useAuth } from '@/lib/middleware/stores/composables/useAuth';
+import { envConfig } from '@/lib/config/env.config';
 
 type CallbackState = 'processing' | 'success' | 'error';
 
@@ -20,14 +21,14 @@ export default function AuthCallbackPage() {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
-      
+
       const code = urlParams.get('code');
       const error = urlParams.get('error') || hashParams.get('error');
 
-      console.log('📍 Callback:', { 
-        hasCode: !!code, 
+      console.log('📍 Callback:', {
+        hasCode: !!code,
         error,
-        url: window.location.href 
+        url: window.location.href
       });
 
       // Si hay error
@@ -54,10 +55,10 @@ export default function AuthCallbackPage() {
 
       // Intercambiar código por token
       console.log('🔐 Intercambiando código por token...');
-      
+
       const tokenUrl = `${envConfig.keycloak.url}/realms/${envConfig.keycloak.realm}/protocol/openid-connect/token`;
       const redirectUri = `${window.location.origin}/auth/callback`;
-      
+
       const response = await fetch(tokenUrl, {
         method: 'POST',
         headers: {
@@ -78,9 +79,9 @@ export default function AuthCallbackPage() {
       }
 
       const tokenData = await response.json();
-      console.log('✅ Token obtenido!', { 
+      console.log('✅ Token obtenido!', {
         hasAccessToken: !!tokenData.access_token,
-        hasRefreshToken: !!tokenData.refresh_token 
+        hasRefreshToken: !!tokenData.refresh_token
       });
 
       // Guardar tokens
@@ -90,10 +91,10 @@ export default function AuthCallbackPage() {
       }
 
       setState('success');
-      
+
       // Limpiar URL y redirigir
       window.history.replaceState({}, '', '/auth/callback');
-      
+
       setTimeout(() => {
         window.location.replace('/dashboard');
       }, 1000);
@@ -108,7 +109,7 @@ export default function AuthCallbackPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="text-center max-w-md mx-auto p-8 bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20">
-        
+
         {state === 'processing' && (
           <>
             <div className="w-16 h-16 mx-auto mb-6">

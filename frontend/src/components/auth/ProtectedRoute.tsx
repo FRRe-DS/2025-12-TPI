@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useKeycloak } from '@/app/lib/middleware/auth/KeycloakProvider';
+import { useAuth } from '@/lib/middleware/stores/composables/useAuth';
 
 // ============================================================================
 // TIPOS
@@ -25,7 +25,7 @@ interface ProtectedRouteProps {
 // COMPONENTE PRINCIPAL
 // ============================================================================
 
-export function ProtectedRoute({
+export default function ProtectedRoute({
   children,
   requiredRoles,
   loadingComponent,
@@ -33,39 +33,41 @@ export function ProtectedRoute({
   redirectToLogin = true,
   redirectUrl = '/',
 }: ProtectedRouteProps) {
-  const { initialized, authenticated, keycloak, login } = useKeycloak();
+  const { isAuthenticated, isLoading, login, hasRole } = useAuth();
+  const [isClient, setIsClient] = useState(false);
   const [hasRequiredRole, setHasRequiredRole] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!initialized) return;
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient || isLoading) return;
 
     // Si hay roles requeridos, verificar
-    if (requiredRoles && requiredRoles.length > 0 && keycloak) {
-      const userRoles = keycloak.realmAccess?.roles || [];
-      const hasRole = requiredRoles.some(role => userRoles.includes(role));
-      setHasRequiredRole(hasRole);
+    if (requiredRoles && requiredRoles.length > 0) {
+      const hasRoleMatch = requiredRoles.some(role => hasRole(role));
+      setHasRequiredRole(hasRoleMatch);
     } else {
       setHasRequiredRole(true); // No hay roles requeridos
     }
 
     // Si no está autenticado y debe redirigir
-    if (!authenticated && redirectToLogin) {
+    if (!isAuthenticated && redirectToLogin) {
       console.log('🔒 Usuario no autenticado, redirigiendo...');
-      if (typeof window !== 'undefined') {
-        window.location.href = redirectUrl;
-      }
+      login(redirectUrl);
     }
-  }, [initialized, authenticated, keycloak, requiredRoles, redirectToLogin, redirectUrl]);
+  }, [isClient, isLoading, isAuthenticated, requiredRoles, redirectToLogin, redirectUrl, login, hasRole]);
 
-  // Mientras se inicializa Keycloak
-  if (!initialized) {
+  // Mientras se inicializa
+  if (!isClient || isLoading) {
     return loadingComponent || <DefaultLoadingComponent />;
   }
 
   // Si no está autenticado
-  if (!authenticated) {
+  if (!isAuthenticated) {
     if (!redirectToLogin) {
-      return unauthorizedComponent || <DefaultUnauthorizedComponent onLogin={login} />;
+      return unauthorizedComponent || <DefaultUnauthorizedComponent onLogin={() => login(redirectUrl)} />;
     }
     // Si redirectToLogin es true, ya se maneja en useEffect
     return loadingComponent || <DefaultLoadingComponent />;
@@ -153,5 +155,4 @@ function DefaultForbiddenComponent() {
 // EXPORTS
 // ============================================================================
 
-export default ProtectedRoute;
 

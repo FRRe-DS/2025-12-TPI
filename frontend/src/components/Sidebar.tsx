@@ -16,12 +16,11 @@ import {
   Package,
   ClipboardList,
   Users,
-  Route,
   AlertTriangle,
   ShoppingCart,
   LogOut
 } from 'lucide-react';
-import { envConfig } from '@/app/lib/config/env.config';
+import { envConfig } from '@/lib/config/env.config';
 import PepackLogo from '@/components/pepacklogo.jpeg';
 
 const logo = (
@@ -54,10 +53,10 @@ export function Sidebar({
     // Limpiar tokens locales
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_refresh_token');
-    
+
     // Construir URL de logout de Keycloak
     const logoutUrl = `${envConfig.keycloak.url}/realms/${envConfig.keycloak.realm}/protocol/openid-connect/logout?client_id=${envConfig.keycloak.clientId}&post_logout_redirect_uri=${encodeURIComponent(window.location.origin)}`;
-    
+
     // Redirigir a Keycloak logout
     window.location.href = logoutUrl;
   };
@@ -67,27 +66,12 @@ export function Sidebar({
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard, href: '/dashboard' },
     { id: 'reservas', label: 'Reservas', icon: ShoppingCart, href: '/reservas' },
     { id: 'seguimiento', label: 'Seguimiento de envíos', icon: Package, href: '/operaciones/seguimiento' },
+    { id: 'tarifas', label: 'Tarifas', icon: DollarSign, href: '/configuration/cotizacion' },
   ];
 
   // Secciones con subsecciones
   const menuSections = useMemo(() => [
-    {
-      id: 'operaciones',
-      label: 'Operaciones',
-      icon: ClipboardList,
-      items: [
-        { id: 'operaciones-hojas-ruta', label: 'Hojas de ruta / Despachos', icon: Route, href: '/operaciones/hojas-ruta' },
-        { id: 'operaciones-incidencias', label: 'Incidencias y no-entregas', icon: AlertTriangle, href: '/operaciones/incidencias' },
-      ]
-    },
-    {
-      id: 'tarifas',
-      label: 'Tarifas',
-      icon: DollarSign,
-      items: [
-        { id: 'config-cotizacion', label: 'Reglas de cotización', icon: DollarSign, href: '/configuration/cotizacion' },
-      ]
-    },
+
     {
       id: 'recursos',
       label: 'Recursos',

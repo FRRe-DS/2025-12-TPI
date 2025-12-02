@@ -87,6 +87,14 @@ export class CreateShippingRequestDto {
   @ValidateNested({ each: true })
   @Type(() => CreateShippingProductDto)
   products: CreateShippingProductDto[];
+
+  @IsOptional()
+  @IsString()
+  vehicleId?: string;
+
+  @IsOptional()
+  @IsString()
+  reservationId?: string;
 }
 
 import { ApiProperty } from '@nestjs/swagger';
