@@ -10,8 +10,8 @@ export class JwtService {
 
   constructor() {
     const keycloakUrl =
-      process.env.KEYCLOAK_URL || 'https://keycloak.mmalgor.com.ar';
-    const realm = process.env.KEYCLOAK_REALM || 'ds-2025-realm';
+      process.env.KEYCLOAK_URL;
+    const realm = process.env.KEYCLOAK_REALM;
     const jwksUri = `${keycloakUrl}/realms/${realm}/protocol/openid-connect/certs`;
 
     this.logger.log(`Initializing JWKS client with URI: ${jwksUri}`);

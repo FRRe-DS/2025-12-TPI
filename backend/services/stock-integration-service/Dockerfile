@@ -112,6 +112,7 @@ ARG PORT
 
 ENV NODE_ENV=production
 ENV PORT=${PORT}
+ENV STOCK_API_BEARER_TOKEN=""
 
 # Crear usuario no-root para seguridad
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
