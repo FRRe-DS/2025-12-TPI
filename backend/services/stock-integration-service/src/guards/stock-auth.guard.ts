@@ -73,6 +73,13 @@ export class StockAuthGuard implements CanActivate {
     );
 
     if (!keycloakUrl || !realm || !clientId || !clientSecret) {
+      this.logger.error('Missing Keycloak configuration:', {
+        keycloakUrl,
+        realm,
+        clientId,
+        hasClientSecret: !!clientSecret,
+        envKeycloakUrl: process.env.KEYCLOAK_URL, // Check direct env access
+      });
       throw new Error('Keycloak configuration is incomplete');
     }
 
