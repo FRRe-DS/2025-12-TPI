@@ -12,7 +12,7 @@ export class StockAuthGuard implements CanActivate {
   private readonly logger = new Logger(StockAuthGuard.name);
   private tokenCache = new Map<string, { token: string; expiresAt: number }>();
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
