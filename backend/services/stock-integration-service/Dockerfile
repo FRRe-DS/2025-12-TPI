@@ -112,7 +112,10 @@ ARG PORT
 
 ENV NODE_ENV=production
 ENV PORT=${PORT}
-ENV STOCK_API_BEARER_TOKEN=""
+ENV KEYCLOAK_URL=""
+ENV KEYCLOAK_REALM=""
+ENV KEYCLOAK_CLIENT_ID=""
+ENV KEYCLOAK_CLIENT_SECRET=""
 
 # Crear usuario no-root para seguridad
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
