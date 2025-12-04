@@ -44,7 +44,7 @@ interface DistribucionZonas {
 interface PedidoEnProceso {
   numeroPedido: string;
   progreso: number;
-  id: number;
+  id: string;
   etapa: string;
 }
 
