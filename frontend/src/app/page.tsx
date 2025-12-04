@@ -95,7 +95,7 @@ export default function Home() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">PEPACK</h1>
-          <p className="text-gray-600 mt-2">Gestión Logística y de BOCA</p>
+          <p className="text-gray-600 mt-2">Gestión Logística</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">

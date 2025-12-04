@@ -376,7 +376,7 @@ export default function Dashboard() {
             }`}>
             {modeInfo.mode === 'backend'
               ? 'Sistema completo de gestión logística con optimización de rutas y seguimiento en tiempo real.'
-              : 'Estás experimentando la interfaz completa de PEPACK con datos realistas. Todas las funcionalidades están disponibles para pruebas de BOCA'
+              : 'Estás experimentando la interfaz completa de PEPACK con datos realistas. Todas las funcionalidades están disponibles para pruebas'
             }
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -433,9 +433,9 @@ export default function Dashboard() {
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>
           <h1 className="text-3xl bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
-            PEPACK - Gestión Logística y de BOCA
+            PEPACK - Gestión Logística
           </h1>
-          <p className="text-gray-600 mt-1">Sistema inteligente de gestión logística y seguimiento de entregas de BOCA.</p>
+          <p className="text-gray-600 mt-1">Sistema inteligente de gestión logística y seguimiento de entregas.</p>
         </div>
         <div className="flex items-center gap-4">
           <BackendStatusIndicator />
