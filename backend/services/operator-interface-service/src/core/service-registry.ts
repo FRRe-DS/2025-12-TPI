@@ -47,7 +47,7 @@ export class ServiceRegistry {
       {
         name: 'config-service',
         baseUrl: process.env.CONFIG_SERVICE_URL || 'http://localhost:3003',
-        routes: ['/config', '/fleet'],
+        routes: ['/config', '/fleet', '/shipping/transport-methods'],
         healthCheckUrl: '/health',
       },
       {

@@ -1,10 +1,11 @@
 #!/bin/bash
 
-# Load authentication
+# Load common environment variables and authentication
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/load_env.sh"
 source "$SCRIPT_DIR/get_token.sh"
 
-API_URL="http://localhost:3004"
+# API_URL is already loaded from load_env.sh (default: http://localhost:3004)
 
 echo "Testing Create Shipment..."
 echo "Endpoint: $API_URL/shipping"

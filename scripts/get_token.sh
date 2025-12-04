@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# Load environment variables from .env if it exists
-if [ -f "$(dirname "$0")/.env" ]; then
-    export $(grep -v '^#' "$(dirname "$0")/.env" | xargs)
-fi
+# Load common environment variables
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/load_env.sh"
 
-# Configuration (defaults if not in .env)
+# Configuration (defaults already loaded from load_env.sh)
 KEYCLOAK_URL="${KEYCLOAK_URL:-https://keycloak.mmalgor.com.ar}"
 REALM="${REALM:-ds-2025-realm}"
 CLIENT_ID="${CLIENT_ID:-grupo-12}"
@@ -21,13 +20,21 @@ echo "Authenticating with Keycloak..."
 echo "User: $TEST_USER"
 echo "URL: $KEYCLOAK_URL/realms/$REALM/protocol/openid-connect/token"
 
+# Build curl command with optional client_secret
+CURL_DATA="client_id=$CLIENT_ID"
+CURL_DATA="$CURL_DATA&username=$TEST_USER"
+CURL_DATA="$CURL_DATA&password=$TEST_PASSWORD"
+CURL_DATA="$CURL_DATA&grant_type=password"
+CURL_DATA="$CURL_DATA&scope=openid"
+
+# Add client_secret if provided
+if [ -n "$CLIENT_SECRET" ]; then
+    CURL_DATA="$CURL_DATA&client_secret=$CLIENT_SECRET"
+fi
+
 RESPONSE=$(curl -s -X POST "$KEYCLOAK_URL/realms/$REALM/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "client_id=$CLIENT_ID" \
-  -d "username=$TEST_USER" \
-  -d "password=$TEST_PASSWORD" \
-  -d "grant_type=password" \
-  -d "scope=openid")
+  -d "$CURL_DATA")
 
 # Check if curl failed
 if [ $? -ne 0 ]; then
