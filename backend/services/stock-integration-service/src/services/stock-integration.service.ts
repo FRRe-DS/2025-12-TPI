@@ -316,7 +316,7 @@ export class StockIntegrationService {
         `/reservas/${reservaId}`,
         {
           usuarioId: userId,
-          estado: estado,
+          estado: estado.toUpperCase(),
         },
         { headers: await this.getAuthHeaders() },
       );
