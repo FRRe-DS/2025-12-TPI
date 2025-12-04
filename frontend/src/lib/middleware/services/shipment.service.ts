@@ -7,6 +7,8 @@ export interface ShipmentFilters {
   originZone?: string;
   destinationZone?: string;
   transportMethodId?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface AddressDTO {
@@ -258,6 +260,37 @@ class ShipmentService {
       return [];
     } catch (error) {
       console.error('Error fetching shipments:', error);
+      throw error;
+    }
+  }
+
+  async getShipmentsPaginated(filters?: ShipmentFilters): Promise<{ shipments: ShipmentDTO[], total: number, page: number, limit: number }> {
+    try {
+      const response = await httpClient.get<ApiListShippingResponse | ShipmentDTO[]>('/shipping', { params: filters });
+
+      // El API devuelve { shipments: [...], total, page, limit }
+      if (response && typeof response === 'object' && 'shipments' in response && Array.isArray(response.shipments)) {
+        return {
+          shipments: response.shipments.map(mapApiShippingToDTO),
+          total: response.total,
+          page: response.page,
+          limit: response.limit
+        };
+      }
+
+      // Si es un array (legacy), simular respuesta paginada
+      if (Array.isArray(response)) {
+        return {
+          shipments: response,
+          total: response.length,
+          page: 1,
+          limit: response.length
+        };
+      }
+
+      return { shipments: [], total: 0, page: 1, limit: 20 };
+    } catch (error) {
+      console.error('Error fetching paginated shipments:', error);
       throw error;
     }
   }

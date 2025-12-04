@@ -152,15 +152,15 @@ export default function Dashboard() {
   // Función helper para agrupar envíos por mes
   const groupByMonth = (shipments: ShipmentDTO[]) => {
     const meses: Record<string, { entregas: number; creados: number; cancelados: number }> = {};
-    
+
     shipments.forEach(shipment => {
       const fecha = new Date(shipment.createdAt);
       const mesKey = fecha.toLocaleDateString('es-AR', { month: 'short', year: 'numeric' });
-      
+
       if (!meses[mesKey]) {
         meses[mesKey] = { entregas: 0, creados: 0, cancelados: 0 };
       }
-      
+
       meses[mesKey].creados++;
       if (shipment.status === 'DELIVERED') meses[mesKey].entregas++;
       if (shipment.status === 'CANCELLED') meses[mesKey].cancelados++;
@@ -179,7 +179,7 @@ export default function Dashboard() {
   // Función helper para agrupar por ciudad
   const groupByCity = (shipments: ShipmentDTO[]) => {
     const ciudades: Record<string, number> = {};
-    
+
     shipments.forEach(shipment => {
       const ciudad = shipment.destinationAddress?.city || 'Desconocida';
       ciudades[ciudad] = (ciudades[ciudad] || 0) + 1;
@@ -206,8 +206,8 @@ export default function Dashboard() {
 
       // Obtener datos de envíos
       // El servicio devuelve un array de ShipmentDTO[]
-      const shipments = await shipmentService.getShipments();
-      
+      const shipments = await shipmentService.getShipments({ limit: 100 });
+
       // Obtener datos de vehículos
       let vehicles: VehicleDTO[] = [];
       try {
@@ -218,7 +218,7 @@ export default function Dashboard() {
 
       // Procesar métricas
       const metrics = processShipmentsData(shipments);
-      
+
       // Calcular vehículos disponibles
       const vehiculosDisponibles = vehicles.filter(v => v.status === 'AVAILABLE').length;
 

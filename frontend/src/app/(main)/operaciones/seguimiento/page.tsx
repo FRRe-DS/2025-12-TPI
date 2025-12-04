@@ -26,16 +26,17 @@ export default function SeguimientoPage() {
   const loadShipments = async () => {
     setIsLoading(true);
     try {
-      const data = await shipmentService.getShipments({
+      const data = await shipmentService.getShipmentsPaginated({
         status: filters.status || undefined,
         startDate: filters.startDate || undefined,
-        endDate: filters.endDate || undefined
+        endDate: filters.endDate || undefined,
+        page: page,
+        limit: 20
       });
-      // Asegurar que data sea siempre un array
-      const shipmentsArray = Array.isArray(data) ? data : [];
-      setShipments(shipmentsArray);
-      // Calcular paginación basada en resultados
-      setTotalPages(Math.ceil(shipmentsArray.length / 20));
+
+      setShipments(data.shipments);
+      // Calcular paginación basada en el total real del backend
+      setTotalPages(Math.ceil(data.total / data.limit));
     } catch (err) {
       console.error('Error loading shipments:', err);
       setShipments([]);
