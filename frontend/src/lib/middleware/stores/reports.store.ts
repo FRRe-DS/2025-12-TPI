@@ -1,5 +1,4 @@
 import { reportService, KPIData, DateRange } from '../services/report.service';
-import { generateMockKPIData } from '../services/mock-kpi-data';
 
 export interface ReportsState {
   kpiData: KPIData | null;
@@ -95,16 +94,9 @@ export const reportsStore = {
       this.setPeriod(period || null);
     } catch (e: unknown) {
       lastKpiError = Date.now();
-      console.warn('KPI API error, using mock data:', e);
-
-      // Use mock data for development/demo when backend is not available
-      const mockData = generateMockKPIData();
-      this.setKPIData(mockData);
-      this.setPeriod(period || null);
-
-      // Don't set error in this case, as we're using mock data
-      // const message = e instanceof Error ? e.message : 'Error cargando KPIs';
-      // this.setError(message);
+      const message = e instanceof Error ? e.message : 'Error cargando KPIs';
+      this.setError(message);
+      console.error('Error loading KPIs:', e);
     } finally {
       this.setLoading(false);
       kpiLoading = false;

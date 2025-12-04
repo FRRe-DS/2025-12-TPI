@@ -34,47 +34,16 @@ export default function SeguimientoPage() {
       // Asegurar que data sea siempre un array
       const shipmentsArray = Array.isArray(data) ? data : [];
       setShipments(shipmentsArray);
-      // Mock pagination
+      // Calcular paginación basada en resultados
       setTotalPages(Math.ceil(shipmentsArray.length / 20));
     } catch (err) {
       console.error('Error loading shipments:', err);
-      // Generate mock data for development
-      setShipments(generateMockShipments());
+      setShipments([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateMockShipments = (): ShipmentDTO[] => {
-    return Array.from({ length: 15 }, (_, i) => ({
-      id: `ship - ${i + 1} `,
-      orderId: 1000 + i,
-      trackingNumber: `TRK${String(1000 + i).padStart(8, '0')} `,
-      originAddress: {
-        street: 'Calle 100 #15-20',
-        city: 'Bogotá',
-        state: 'Cundinamarca',
-        postal_code: '110111',
-        country: 'Colombia'
-      },
-      destinationAddress: {
-        street: 'Carrera 43A #14-58',
-        city: ['Medellín', 'Cali', 'Barranquilla', 'Cartagena'][i % 4],
-        state: ['Antioquia', 'Valle', 'Atlántico', 'Bolívar'][i % 4],
-        postal_code: '050001',
-        country: 'Colombia'
-      },
-      products: [],
-      transportMethod: {
-        id: `tm - ${i % 4 + 1} `,
-        name: ['Terrestre Express', 'Terrestre Estándar', 'Aéreo', 'Marítimo'][i % 4]
-      },
-      status: ['PENDING', 'PROCESSING', 'IN_TRANSIT', 'DELIVERED'][i % 4],
-      totalCost: 50000 + (i * 10000),
-      createdAt: new Date(Date.now() - (i * 86400000)).toISOString(),
-      estimatedDeliveryDate: new Date(Date.now() + (i * 86400000)).toISOString()
-    }));
-  };
 
   const handleClearFilters = () => {
     setFilters({

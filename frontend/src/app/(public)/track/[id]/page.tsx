@@ -4,7 +4,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { shipmentService, PublicTrackingDTO } from '@/lib/middleware/services/shipment.service';
-import { generateMockTrackingData } from '@/lib/middleware/services/mock-tracking-data';
 
 export default function TrackingPage() {
   const params = useParams();
@@ -24,15 +23,8 @@ export default function TrackingPage() {
       const data = await shipmentService.trackShipment(trackingId);
       setTracking(data);
     } catch (err) {
-      console.warn('Tracking API error, using mock data:', err);
-
-      // Use mock data when backend is not available
-      try {
-        const mockData = generateMockTrackingData(trackingId);
-        setTracking(mockData);
-      } catch {
-        setError('Envío no encontrado. Verifica el número de seguimiento.');
-      }
+      console.error('Error loading tracking:', err);
+      setError('Envío no encontrado. Verifica el número de seguimiento.');
     } finally {
       setIsLoading(false);
     }

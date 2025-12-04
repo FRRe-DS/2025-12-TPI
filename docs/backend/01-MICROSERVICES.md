@@ -451,22 +451,22 @@ curl http://localhost:3004/config/transport-methods/search?query=aer
 
 ```bash
 cd backend/services/config-service
-npm run build
+pnpm run build
 ```
 
 ### Tests Unitarios
 
 ```bash
 cd backend/services/config-service
-npm test
-npm run test:watch
+pnpm test
+pnpm run test:watch
 ```
 
 ### Tests E2E
 
 ```bash
 cd backend/services/config-service
-npm run test:e2e
+pnpm run test:e2e
 ```
 
 ### Health Check Manual
@@ -505,13 +505,13 @@ PORT=3001  # o 3002, 3003, 3004
 **Servicio no inicia:**
 ```bash
 # Ver error en logs
-npm run start:dev
+pnpm run start:dev
 
 # Verificar puerto está libre
 lsof -i :3001
 
 # Verificar BD conecta
-npx prisma db execute --stdin < /dev/null
+pnpm prisma db execute --stdin < /dev/null
 ```
 
 **Gateway no rutea:**
@@ -532,5 +532,4 @@ npx prisma generate
 
 ---
 
-**Última actualización:** 24 de Octubre, 2025
-**Responsable:** Grupo 12 TPI 2025
+**Última actualización:** Diciembre 3, 2025

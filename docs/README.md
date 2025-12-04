@@ -1,119 +1,8 @@
-<<<<<<< HEAD
-# 📚 Documentación Técnica - TPI Logística Grupo 12
-
-**Última actualización:** 2025-11-04
-
----
-
-## 📋 Índice General
-
-### **🏗️ Arquitectura**
-Diseño del sistema y decisiones técnicas.
-
-- **[README de Arquitectura](./architecture/README.md)** - Visión general
-- **Microservicios:**
-  - `operator-interface-service` (API Gateway)
-  - `config-service` (Configuración y flota)
-  - `shipping-service` (Envíos y cotizaciones)
-  - `stock-integration-service` (Integración externa)
-- **Librerías compartidas:**
-  - `@logistics/database` (Prisma ORM)
-  - `@logistics/types` (DTOs y tipos)
-  - `@logistics/utils` (Utilidades)
-
-**Cambio importante (2025-11-04):** Puertos ahora configurables vía env vars.
-Ver: [`backend/services/operator-interface-service/src/core/service-registry.ts:42-64`](../backend/services/operator-interface-service/src/core/service-registry.ts)
-
----
-
-### **🗄️ Base de Datos**
-Schema, migraciones y gestión de datos.
-
-- **[README de Database](./database/README.md)** - Documentación del schema
-- **Schema Prisma:** `backend/shared/database/prisma/schema.prisma`
-- **Migraciones:** `backend/shared/database/prisma/migrations/`
-- **Seed:** `backend/shared/database/prisma/seed.ts`
-
-**Modelos principales:**
-- `TransportMethod` - Métodos de transporte
-- `CoverageZone` - Zonas de cobertura
-- `TariffConfig` - Configuración de tarifas
-- `Vehicle` - Vehículos de la flota
-- `Driver` - Conductores
-- `Route` - Rutas planificadas
-- `RouteStop` - Paradas de rutas
-
----
-
-### **📡 API**
-Endpoints, contratos y documentación Swagger.
-
-- **[README de API](./api/README.md)** - Documentación de endpoints
-- **Swagger UI (local):**
-  - Config Service: http://localhost:3003/api
-  - Operator Gateway: http://localhost:3004/api
-  - Shipping Service: http://localhost:3001/api
-  - Stock Service: http://localhost:3002/api
-
-**Documentación específica:**
-- **[Config Service Swagger](../backend/services/config-service/SWAGGER.md)**
-- **[Operator Gateway](../backend/services/operator-interface-service/GATEWAY.md)**
-- **[Tests E2E](../backend/services/operator-interface-service/TESTS.md)**
-
----
-
-## 🔧 Guías por Tarea
-
-### **Quiero entender la arquitectura:**
-1. ✅ [`architecture/README.md`](./architecture/README.md)
-2. ✅ Lee el código de `service-registry.ts` y `service-facade.ts`
-
-### **Quiero desarrollar localmente:**
-1. ✅ Sigue [`../backend/OPERATE-BACKEND.md`](../backend/OPERATE-BACKEND.md)
-2. ✅ Instala dependencias: `pnpm install:all`
-3. ✅ Build shared libs: `pnpm build:shared`
-4. ✅ Inicia servicios: `pnpm dev`
-
----
-
-## 📦 Cambios Recientes (2025-11-04)
-
-### ✅ **Migración npm → pnpm completada**
-- Eliminados todos los `package-lock.json`
-- Dockerfiles actualizados para usar pnpm
-- Scripts en `backend/package.json` actualizados
-
-### ✅ **Puertos externalizados**
-- `CONFIG_SERVICE_URL`, `SHIPPING_SERVICE_URL`, `STOCK_SERVICE_URL` ahora son env vars
-- Ver: [`backend/services/operator-interface-service/.env.example`](../backend/services/operator-interface-service/.env.example)
-
-### ✅ **Dockerfiles optimizados**
-- Multi-stage build con caché eficiente
-- Copia de dependencias separada de código
-- .dockerignore agregado a todos los servicios
-
-### ✅ **Documentación consolidada**
-- Todo centralizado en `/docs`
-- Guías de deployment actualizadas
-- Networking y database documentados
-
----
-
-## 📁 Estructura de /docs
-
-```
-docs/
-├── README.md (este archivo)
-├── architecture/
-│   └── README.md
-├── database/
-│   └── README.md
-└── api/
-    └── README.md
-=======
 # 📚 Documentación del Proyecto - Logística TPI 2025
 
 Documentación completa y organizada del sistema de logística.
+
+**Última actualización:** Diciembre 2025
 
 ---
 
@@ -123,6 +12,7 @@ Documentación completa y organizada del sistema de logística.
 docs/
 ├── README.md                     # Este archivo (índice)
 ├── SYSTEM-ARCHITECTURE.md        # Arquitectura general del sistema
+├── KEYCLOAK_INTEGRATION.md       # Integración con Keycloak
 │
 ├── backend/                      # Documentación Backend
 │   ├── 01-MICROSERVICES.md      # Microservicios (Config, Shipping, Stock, Gateway)
@@ -133,33 +23,22 @@ docs/
 ├── frontend/                     # Documentación Frontend
 │   └── 01-FRONTEND-ARCHITECTURE.md  # Componentes, stores, hooks
 │
+├── api/                          # Documentación de API
+│   └── README.md                # Endpoints y contratos
+│
+├── architecture/                 # Arquitectura del sistema
+│   └── README.md                # Diseño y decisiones técnicas
+│
+├── database/                     # Base de datos
+│   └── README.md                # Schema y migraciones
+│
 └── deployment/                   # DevOps y despliegue
+    ├── README.md                # Índice de deployment
     └── DEPLOYMENT.md            # Guías de deployment
->>>>>>> origin/main
 ```
 
 ---
 
-<<<<<<< HEAD
-## 🔗 Enlaces Externos
-
-- **Repositorio:** [GitHub - martinmalgor04/dsw-2025](https://github.com/martinmalgor04/dsw-2025)
-- **Dokploy:** [docs.dokploy.com](https://docs.dokploy.com)
-- **Prisma:** [prisma.io/docs](https://www.prisma.io/docs)
-- **NestJS:** [docs.nestjs.com](https://docs.nestjs.com)
-- **Next.js:** [nextjs.org/docs](https://nextjs.org/docs)
-
----
-
-## 📞 Soporte
-
-- **Issues:** [GitHub Issues](https://github.com/martinmalgor04/dsw-2025/issues)
-- **Pull Requests:** [GitHub PRs](https://github.com/martinmalgor04/dsw-2025/pulls)
-
----
-
-**Mantenido por:** Grupo 12 - TPI Desarrollo de Software 2025
-=======
 ## 🚀 Inicio Rápido
 
 ### 1. Leer Primero
@@ -170,12 +49,7 @@ Si es tu primera vez, lee esto en orden:
    - Visión general del sistema
    - Componentes principales
 
-2. **[../CLAUDE.md](../CLAUDE.md)** (15 min)
-   - Guía completa de desarrollo
-   - Comandos útiles
-   - Troubleshooting
-
-3. **[../README.md](../README.md)** (5 min)
+2. **[../README.md](../README.md)** (5 min)
    - Setup inicial
    - Quick start
 
@@ -209,10 +83,6 @@ Si es tu primera vez, lee esto en orden:
    - Componentes React
    - Pattern de stores + composables
    - Keycloak integration
-
-2. **[../API-GATEWAY-ROUTES.md](../API-GATEWAY-ROUTES.md)**
-   - Rutas disponibles del gateway
-   - Ejemplos de uso
 
 ### 4. Para DevOps / Deployment
 
@@ -252,8 +122,9 @@ Si es tu primera vez, lee esto en orden:
 | Documento | Descripción | Audiencia |
 |-----------|-------------|-----------|
 | [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md) | Visión global del sistema | Todos |
-| [../CLAUDE.md](../CLAUDE.md) | Guía completa desarrollo | Todos |
-| [../API-GATEWAY-ROUTES.md](../API-GATEWAY-ROUTES.md) | Rutas del gateway | Frontend devs |
+| [api/README.md](./api/README.md) | Documentación de API | Frontend devs |
+| [architecture/README.md](./architecture/README.md) | Arquitectura del sistema | Arquitectos |
+| [database/README.md](./database/README.md) | Base de datos | Backend devs, DBAs |
 
 ---
 
@@ -287,20 +158,7 @@ Si es tu primera vez, lee esto en orden:
 
 1. Lee [backend/03-DATABASE.md](./backend/03-DATABASE.md)
 2. Edita `backend/shared/database/prisma/schema.prisma`
-3. Corre `npx prisma migrate dev --name descriptivo_nombre`
-
----
-
-## 📚 Documentación Adicional en Raíz
-
-```
-/
-├── CLAUDE.md                    # Documentación completa para Claude Code
-├── API-GATEWAY-ROUTES.md        # Rutas del gateway (detallado)
-├── ARCHITECTURE-UPDATE-2025.md  # Cambios recientes (Facade Pattern)
-├── README.md                    # Quick start del proyecto
-└── FIXES-SUMMARY.md             # Resumen de fixes aplicados
-```
+3. Corre `pnpm prisma migrate dev --name descriptivo_nombre`
 
 ---
 
@@ -316,7 +174,6 @@ Si es tu primera vez, lee esto en orden:
 
 **Referencias:**
 - [backend/04-API-REFERENCE.md](./backend/04-API-REFERENCE.md)
-- [../CLAUDE.md](../CLAUDE.md)
 
 ### Developer Frontend
 
@@ -325,16 +182,12 @@ Si es tu primera vez, lee esto en orden:
 2. [frontend/01-FRONTEND-ARCHITECTURE.md](./frontend/01-FRONTEND-ARCHITECTURE.md)
 3. [backend/04-API-REFERENCE.md](./backend/04-API-REFERENCE.md)
 
-**Referencias:**
-- [../API-GATEWAY-ROUTES.md](../API-GATEWAY-ROUTES.md)
-- [../CLAUDE.md](../CLAUDE.md)
-
 ### Arquitecto de Sistemas
 
 **Leer:**
 1. [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md)
 2. [backend/02-API-GATEWAY.md](./backend/02-API-GATEWAY.md)
-3. [../ARCHITECTURE-UPDATE-2025.md](../ARCHITECTURE-UPDATE-2025.md)
+3. [architecture/README.md](./architecture/README.md)
 4. [deployment/DEPLOYMENT.md](./deployment/DEPLOYMENT.md)
 
 ### DevOps / SysAdmin
@@ -360,7 +213,7 @@ El **API Gateway** usa estos patrones para rutear automáticamente:
 
 ### Store + Composable Pattern
 
-El frontend usa estos patrones para state management (No estándar React):
+El frontend usa estos patrones para state management:
 
 - **Services**: API calls (httpClient)
 - **Stores**: Estado global (observable)
@@ -368,9 +221,9 @@ El frontend usa estos patrones para state management (No estándar React):
 
 📖 **Leer:** [frontend/01-FRONTEND-ARCHITECTURE.md](./frontend/01-FRONTEND-ARCHITECTURE.md)
 
-### Monorepo
+### Monorepo con pnpm workspaces
 
-Estructura de monorepo con:
+Estructura de monorepo:
 
 - `backend/shared/*` - Paquetes compartidos (database, types, utils)
 - `backend/services/*` - Microservicios independientes
@@ -404,7 +257,7 @@ Estructura de monorepo con:
 1. Editar schema en backend/shared/database/prisma/schema.prisma
    └─ Leer: backend/03-DATABASE.md
 
-2. Crear migración: npx prisma migrate dev
+2. Crear migración: pnpm prisma migrate dev
 
 3. Usar en servicio backend: this.prisma.tableName.findMany()
    └─ Leer: backend/01-MICROSERVICES.md
@@ -425,7 +278,7 @@ Estructura de monorepo con:
   - Config Service: 3003
   - Shipping Service: 3001
   - Stock Integration: 3002
-  - **Gateway (único frontend conoce): 3004**
+  - **Gateway (único que frontend conoce): 3004**
 
 - **Estructura Microservicio:**
   - `controller.ts` - Routes HTTP
@@ -443,8 +296,8 @@ Estructura de monorepo con:
 
 - **ORM:** Prisma
 - **Queries:** Siempre incluir `relationships` con `include`
-- **Migraciones:** `npx prisma migrate dev --name descriptivo`
-- **Reset:** `npx prisma migrate reset` (cuidado - borra datos)
+- **Migraciones:** `pnpm prisma migrate dev --name descriptivo`
+- **Reset:** `pnpm prisma migrate reset` (cuidado - borra datos)
 
 ---
 
@@ -462,47 +315,39 @@ Leer: [backend/03-DATABASE.md](./backend/03-DATABASE.md) - Sección Troubleshoot
 ### Deployment fails
 Leer: [deployment/DEPLOYMENT.md](./deployment/DEPLOYMENT.md)
 
-### No entiendo cómo agregr endpoint
-Leer: [../CLAUDE.md](../CLAUDE.md) - Sección "Adding a New Endpoint"
-
 ---
 
-## 📊 Estadísticas de Documentación
+## 📊 Stack Tecnológico
 
-```
-Total de documentos: 8
-Páginas de documentación: ~50 páginas
-Líneas de documentación: 2,500+
-Ejemplos de código: 100+
+### Backend
+- **Framework**: NestJS con TypeScript
+- **Base de Datos**: PostgreSQL + Prisma ORM
+- **Cache**: Redis
+- **Arquitectura**: Microservicios + API Gateway
+- **Documentación**: OpenAPI/Swagger
+- **Testing**: Jest
 
-Cobertura:
-- Backend: 100% ✅
-- Frontend: 80% (expandible)
-- DevOps: 100% ✅
-- API: 100% ✅
-```
+### Frontend
+- **Framework**: Next.js 16 + React 19
+- **Styling**: Tailwind CSS
+- **State Management**: Custom Store + Composables
+- **Auth**: Keycloak
+- **HTTP Client**: Axios
+- **Validación**: Zod
 
----
-
-## 🔄 Actualización Reciente (Octubre 2025)
-
-Se implementó **Facade Pattern + Service Discovery** en el Gateway:
-
-- ✅ Frontend totalmente desacoplado de topología backend
-- ✅ Nuevos microservicios sin cambios en frontend
-- ✅ Reintentos automáticos en fallos transitorios
-- ✅ Health checks cada 30 segundos
-
-📖 **Leer:** [../ARCHITECTURE-UPDATE-2025.md](../ARCHITECTURE-UPDATE-2025.md)
+### DevOps
+- **Containerization**: Docker + Docker Compose
+- **Package Manager**: pnpm (workspaces)
+- **CI/CD**: GitHub Actions
 
 ---
 
 ## 📝 Notas
 
-- Esta documentación está actualizada a **24 de Octubre de 2025**
-- Usar `/CLAUDE.md` como guía principal para desarrollo
+- Esta documentación está actualizada a **Diciembre de 2025**
 - Todos los comandos asumen estar en raíz del monorepo
 - Versiones de Node.js: 20+
+- Se usa pnpm como package manager (migración desde npm completada)
 
 ---
 
@@ -513,5 +358,4 @@ Se implementó **Facade Pattern + Service Discovery** en el Gateway:
 
 ---
 
-**Última actualización:** 24 de Octubre, 2025
->>>>>>> origin/main
+**Última actualización:** Diciembre 3, 2025

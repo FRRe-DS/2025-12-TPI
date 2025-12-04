@@ -1,241 +1,416 @@
-# 🗄️ Diseño de Base de Datos - Visión General
+# 🗄️ Base de Datos - Documentación
 
-> **📖 IMPORTANTE: Para el esquema Prisma actual y documentación completa, ver:**  
-> **[Backend Database Documentation](../backend/docs/database/README.md)**
-> 
-> Este archivo muestra el diseño en formato SQL.  
-> La documentación actualizada con Prisma schema está en `/backend/docs/database/README.md`.
+Documentación del schema de base de datos y gestión de migraciones.
+
+**Última actualización:** Diciembre 2025
 
 ---
 
+## 📐 Arquitectura de Datos
 
-## Visión General
+### Tecnologías
+- **Base de Datos**: PostgreSQL 15+
+- **ORM**: Prisma 5.x
+- **Migraciones**: Prisma Migrate
+- **Seed**: Datos iniciales con `prisma/seed.ts`
 
-Base de datos PostgreSQL alojada en Supabase, diseñada para soportar operaciones de logística y transporte con alta disponibilidad y performance.
-
-## Esquema de Base de Datos
-
-### Tablas Principales / No implementado al 06/11/2025
-
-#### 1. `shipments` - Envíos
-```sql
-CREATE TABLE shipments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id INTEGER NOT NULL,
-  user_id INTEGER NOT NULL,
-  delivery_street VARCHAR(255) NOT NULL,
-  delivery_city VARCHAR(100) NOT NULL,
-  delivery_state VARCHAR(100) NOT NULL,
-  delivery_postal_code VARCHAR(20) NOT NULL,
-  delivery_country VARCHAR(2) DEFAULT 'AR',
-  departure_street VARCHAR(255),
-  departure_city VARCHAR(100),
-  departure_state VARCHAR(100),
-  departure_postal_code VARCHAR(20),
-  departure_country VARCHAR(2) DEFAULT 'AR',
-  status shipping_status DEFAULT 'CREATED',
-  transport_type transport_type NOT NULL,
-  tracking_number VARCHAR(50) UNIQUE,
-  carrier_name VARCHAR(100),
-  total_cost DECIMAL(10,2) NOT NULL,
-  currency VARCHAR(3) DEFAULT 'ARS',
-  estimated_delivery_at TIMESTAMPTZ NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  cancelled_at TIMESTAMPTZ
-);
+### Ubicación
+```
+backend/shared/database/
+├── prisma/
+│   ├── schema.prisma      # Schema principal
+│   ├── migrations/        # Historial de migraciones
+│   └── seed.ts           # Datos iniciales
+├── src/
+│   └── prisma.service.ts # Servicio Prisma para NestJS
+└── package.json          # @logistics/database
 ```
 
-#### 2. `transport_methods` - Métodos de Transporte
-```sql
-CREATE TABLE transport_methods (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code VARCHAR(20) UNIQUE NOT NULL,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  average_speed INTEGER NOT NULL,
-  estimated_days VARCHAR(20) NOT NULL,
-  base_cost_per_km DECIMAL(10,2) NOT NULL,
-  base_cost_per_kg DECIMAL(10,2) NOT NULL,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
+---
 
-#### 3. `coverage_zones` - Zonas de Cobertura
-```sql
-CREATE TABLE coverage_zones (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  postal_codes TEXT[] NOT NULL,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
+## 📊 Modelos Principales
 
-#### 4. `tariff_configs` - Configuración de Tarifas
-```sql
-CREATE TABLE tariff_configs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  transport_method_id UUID REFERENCES transport_methods(id) ON DELETE CASCADE,
-  base_tariff DECIMAL(10,2) NOT NULL,
-  cost_per_kg DECIMAL(10,2) NOT NULL,
-  cost_per_km DECIMAL(10,2) NOT NULL,
-  volumetric_factor INTEGER NOT NULL,
-  environment VARCHAR(20) DEFAULT 'development',
-  is_active BOOLEAN DEFAULT true,
-  valid_from TIMESTAMPTZ DEFAULT NOW(),
-  valid_to TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
+### Configuración (Config Service)
 
-### Tablas de Relación
+#### TransportMethod
+Métodos de transporte disponibles (Moto, Auto, Camioneta, etc.)
 
-#### `shipping_products` - Productos en Envíos
-```sql
-CREATE TABLE shipping_products (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  shipping_id UUID REFERENCES shipments(id) ON DELETE CASCADE,
-  product_id INTEGER NOT NULL,
-  quantity INTEGER NOT NULL
-);
-```
+**Campos:**
+- `id`: Int (PK)
+- `name`: String (único)
+- `description`: String?
+- `capacity`: Float (kg)
+- `baseRate`: Float ($/km)
+- `status`: Enum (ACTIVE, INACTIVE)
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
 
-#### `shipping_logs` - Logs de Auditoría
-```sql
-CREATE TABLE shipping_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  shipping_id UUID REFERENCES shipments(id) ON DELETE CASCADE,
-  status shipping_status NOT NULL,
-  message TEXT NOT NULL,
-  timestamp TIMESTAMPTZ DEFAULT NOW()
-);
-```
+---
 
-## Enums
+#### CoverageZone
+Zonas geográficas de cobertura
 
-### `shipping_status`
-```sql
-CREATE TYPE shipping_status AS ENUM (
-  'CREATED',
-  'RESERVED', 
-  'IN_TRANSIT',
-  'ARRIVED',
-  'IN_DISTRIBUTION',
-  'DELIVERED',
-  'CANCELLED'
-);
-```
+**Campos:**
+- `id`: Int (PK)
+- `name`: String
+- `description`: String?
+- `coordinates`: Json (polígono geográfico)
+- `status`: Enum (ACTIVE, INACTIVE)
+- `transportMethodId`: Int (FK → TransportMethod)
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
 
-### `transport_type`
-```sql
-CREATE TYPE transport_type AS ENUM (
-  'AIR',
-  'SEA', 
-  'RAIL',
-  'ROAD'
-);
-```
+**Relaciones:**
+- `transportMethod`: TransportMethod
+- `tariffs`: TariffConfig[]
 
-## Índices
+---
 
-### Índices de Performance
-```sql
--- Búsquedas por código postal
-CREATE INDEX idx_coverage_zones_postal_codes ON coverage_zones USING GIN (postal_codes);
+#### TariffConfig
+Configuración de tarifas por zona y método de transporte
 
--- Búsquedas por estado de envío
-CREATE INDEX idx_shipments_status ON shipments (status);
+**Campos:**
+- `id`: Int (PK)
+- `zoneId`: Int (FK → CoverageZone)
+- `transportMethodId`: Int (FK → TransportMethod)
+- `pricePerKm`: Float
+- `pricePerKg`: Float
+- `minPrice`: Float
+- `maxPrice`: Float?
+- `effectiveFrom`: DateTime
+- `effectiveTo`: DateTime?
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
 
--- Búsquedas por tipo de transporte
-CREATE INDEX idx_shipments_transport_type ON shipments (transport_type);
+**Relaciones:**
+- `zone`: CoverageZone
+- `transportMethod`: TransportMethod
 
--- Búsquedas por fecha de creación
-CREATE INDEX idx_shipments_created_at ON shipments (created_at);
+---
 
--- Búsquedas por usuario
-CREATE INDEX idx_shipments_user_id ON shipments (user_id);
+#### Vehicle
+Vehículos de la flota
 
--- Búsquedas por orden
-CREATE INDEX idx_shipments_order_id ON shipments (order_id);
-```
+**Campos:**
+- `id`: Int (PK)
+- `licensePlate`: String (único)
+- `transportMethodId`: Int (FK → TransportMethod)
+- `capacity`: Float (kg)
+- `status`: Enum (AVAILABLE, IN_USE, MAINTENANCE, INACTIVE)
+- `currentLocation`: Json? (lat/lng)
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
 
-### Índices de Unicidad
-```sql
--- Tracking number único
-CREATE UNIQUE INDEX idx_shipments_tracking_number ON shipments (tracking_number) WHERE tracking_number IS NOT NULL;
+**Relaciones:**
+- `transportMethod`: TransportMethod
+- `routes`: Route[]
 
--- Código de método de transporte único
-CREATE UNIQUE INDEX idx_transport_methods_code ON transport_methods (code);
-```
+---
 
-## Datos Iniciales
+#### Driver
+Conductores de la flota
 
-### Métodos de Transporte
-- **Aéreo**: 800 km/h, 1-3 días, tarifa alta
-- **Terrestre**: 80 km/h, 3-7 días, tarifa media
-- **Ferroviario**: 60 km/h, 5-10 días, tarifa baja
-- **Marítimo**: 30 km/h, 15-30 días, tarifa mínima
+**Campos:**
+- `id`: Int (PK)
+- `firstName`: String
+- `lastName`: String
+- `licenseNumber`: String (único)
+- `phone`: String
+- `email`: String?
+- `status`: Enum (ACTIVE, INACTIVE, ON_ROUTE)
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
 
-### Zonas de Cobertura
-- 10 zonas principales de Argentina
-- Códigos postales por zona
-- Cobertura nacional
+**Relaciones:**
+- `routes`: Route[]
 
-### Configuración de Tarifas
-- Tarifas por tipo de transporte
-- Factor volumétrico configurable
-- Configuración por ambiente
+---
 
-## Migraciones
+### Envíos (Shipping Service)
 
-### Prisma Migrations
+#### Shipment
+Envíos creados por los clientes
+
+**Campos:**
+- `id`: Int (PK)
+- `trackingCode`: String (único, público)
+- `customerId`: Int
+- `status`: Enum (PENDING, IN_TRANSIT, DELIVERED, CANCELLED, FAILED)
+- `origin`: Json (dirección + coordenadas)
+- `destination`: Json (dirección + coordenadas)
+- `weight`: Float (kg)
+- `dimensions`: Json (length, width, height)
+- `estimatedCost`: Float
+- `actualCost`: Float?
+- `estimatedDelivery`: DateTime
+- `actualDelivery`: DateTime?
+- `transportMethodId`: Int (FK → TransportMethod)
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
+
+**Relaciones:**
+- `transportMethod`: TransportMethod
+- `routeStops`: RouteStop[]
+- `history`: ShipmentHistory[]
+
+---
+
+#### Route
+Rutas planificadas para entregas
+
+**Campos:**
+- `id`: Int (PK)
+- `routeCode`: String (único)
+- `vehicleId`: Int (FK → Vehicle)
+- `driverId`: Int (FK → Driver)
+- `status`: Enum (PLANNED, IN_PROGRESS, COMPLETED, CANCELLED)
+- `plannedDate`: DateTime
+- `startedAt`: DateTime?
+- `completedAt`: DateTime?
+- `totalDistance`: Float? (km)
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
+
+**Relaciones:**
+- `vehicle`: Vehicle
+- `driver`: Driver
+- `stops`: RouteStop[]
+
+---
+
+#### RouteStop
+Paradas en una ruta (un envío es una parada)
+
+**Campos:**
+- `id`: Int (PK)
+- `routeId`: Int (FK → Route)
+- `shipmentId`: Int (FK → Shipment)
+- `stopOrder`: Int (orden en la ruta)
+- `estimatedArrival`: DateTime
+- `actualArrival`: DateTime?
+- `status`: Enum (PENDING, ARRIVED, DELIVERED, FAILED)
+- `notes`: String?
+- `createdAt`: DateTime
+- `updatedAt`: DateTime
+
+**Relaciones:**
+- `route`: Route
+- `shipment`: Shipment
+
+---
+
+#### ShipmentHistory
+Historial de cambios de estado de envíos
+
+**Campos:**
+- `id`: Int (PK)
+- `shipmentId`: Int (FK → Shipment)
+- `status`: Enum (igual que Shipment.status)
+- `description`: String
+- `location`: Json? (lat/lng donde ocurrió el evento)
+- `timestamp`: DateTime
+- `createdBy`: String? (usuario que realizó la acción)
+
+**Relaciones:**
+- `shipment`: Shipment
+
+---
+
+## 🔄 Migraciones
+
+### Crear Nueva Migración
+
 ```bash
-# Generar migración
-npx prisma migrate dev --name add_new_table
+# Desde raíz del proyecto
+cd backend/shared/database
 
-# Aplicar migraciones
-npx prisma migrate deploy
+# Crear migración después de editar schema.prisma
+pnpm prisma migrate dev --name nombre_descriptivo
 
-# Reset de base de datos
-npx prisma migrate reset
+# Ejemplo: agregar campo 'email' a Driver
+pnpm prisma migrate dev --name add_email_to_driver
 ```
 
-### Supabase MCP
-- Creación directa de tablas via MCP
-- Inserción de datos iniciales via MCP
-- Sincronización con schema.prisma
+### Aplicar Migraciones en Producción
 
-## Backup y Recuperación
+```bash
+pnpm prisma migrate deploy
+```
 
-### Estrategia de Backup
-- **Automático**: Supabase backup diario
-- **Manual**: Export via pg_dump
-- **Retención**: 30 días
+### Reset de Base de Datos (⚠️ CUIDADO - Borra todos los datos)
 
-### Recuperación
-- **Punto en tiempo**: Via Supabase dashboard
-- **Completa**: Restore desde backup
-- **Parcial**: Restore de tablas específicas
-
-## Monitoreo
-
-### Métricas
-- **Performance**: Tiempo de consulta
-- **Disponibilidad**: Uptime de conexiones
-- **Uso**: Queries por minuto
-- **Errores**: Rate de errores SQL
-
-### Alertas
-- **Conexiones**: >80% de pool
-- **Queries lentas**: >1 segundo
-- **Errores**: >5% de queries fallidas
+```bash
+pnpm prisma migrate reset
+```
 
 ---
 
-**Última actualización**: 16 de Octubre de 2025
+## 🌱 Seed (Datos Iniciales)
+
+### Ejecutar Seed
+
+```bash
+cd backend/shared/database
+pnpm prisma db seed
+```
+
+### Datos que se Crean
+
+**Transport Methods:**
+- Moto (10 kg)
+- Auto (50 kg)
+- Camioneta (200 kg)
+- Camión (1000 kg)
+
+**Coverage Zones:**
+- Zona Centro (Resistencia)
+- Zona Norte (Barranqueras)
+- Zona Sur (Fontana)
+
+**Tariff Configs:**
+- Tarifas por zona y método de transporte
+
+**Vehicles:**
+- 2 motos
+- 2 autos
+- 1 camioneta
+
+**Drivers:**
+- 3 conductores de ejemplo
+
+---
+
+## 🔍 Queries Comunes
+
+### Obtener envío con toda su información
+
+```typescript
+const shipment = await prisma.shipment.findUnique({
+  where: { id: 1 },
+  include: {
+    transportMethod: true,
+    routeStops: {
+      include: {
+        route: {
+          include: {
+            vehicle: true,
+            driver: true
+          }
+        }
+      }
+    },
+    history: {
+      orderBy: { timestamp: 'desc' }
+    }
+  }
+});
+```
+
+### Listar rutas activas con paradas
+
+```typescript
+const activeRoutes = await prisma.route.findMany({
+  where: {
+    status: { in: ['PLANNED', 'IN_PROGRESS'] }
+  },
+  include: {
+    vehicle: true,
+    driver: true,
+    stops: {
+      include: {
+        shipment: true
+      },
+      orderBy: { stopOrder: 'asc' }
+    }
+  }
+});
+```
+
+### Obtener tarifas vigentes
+
+```typescript
+const currentTariffs = await prisma.tariffConfig.findMany({
+  where: {
+    effectiveFrom: { lte: new Date() },
+    OR: [
+      { effectiveTo: null },
+      { effectiveTo: { gte: new Date() } }
+    ]
+  },
+  include: {
+    zone: true,
+    transportMethod: true
+  }
+});
+```
+
+---
+
+## 🛡️ Constraints y Validaciones
+
+### Unique Constraints
+- `TransportMethod.name`
+- `Vehicle.licensePlate`
+- `Driver.licenseNumber`
+- `Shipment.trackingCode`
+- `Route.routeCode`
+
+### Foreign Key Constraints
+Todas las relaciones tienen `onDelete` configurado:
+- **CASCADE**: Si se borra el padre, se borran los hijos (ej: Route → RouteStop)
+- **RESTRICT**: No se puede borrar si tiene hijos (ej: TransportMethod con Vehicles)
+- **SET NULL**: Se setea a null (ej: opcional)
+
+### Check Constraints
+- `weight > 0`
+- `capacity > 0`
+- `pricePerKm >= 0`
+- `minPrice >= 0`
+
+---
+
+## 📝 Enums
+
+### ShipmentStatus
+```
+PENDING      - Envío creado, pendiente de asignación
+IN_TRANSIT   - En camino
+DELIVERED    - Entregado
+CANCELLED    - Cancelado
+FAILED       - Fallo en entrega
+```
+
+### RouteStatus
+```
+PLANNED      - Ruta planificada
+IN_PROGRESS  - En ejecución
+COMPLETED    - Completada
+CANCELLED    - Cancelada
+```
+
+### VehicleStatus
+```
+AVAILABLE    - Disponible
+IN_USE       - En uso
+MAINTENANCE  - En mantenimiento
+INACTIVE     - Inactivo
+```
+
+### DriverStatus
+```
+ACTIVE       - Activo y disponible
+INACTIVE     - Inactivo
+ON_ROUTE     - En ruta
+```
+
+---
+
+## 🔗 Enlaces
+
+- **[Prisma Documentation](https://www.prisma.io/docs)** - Documentación oficial
+- **[Schema Reference](../backend/03-DATABASE.md)** - Documentación técnica del schema
+- **[API Reference](../backend/04-API-REFERENCE.md)** - Endpoints que usan estos modelos
+
+---
+
+**Última actualización:** Diciembre 3, 2025

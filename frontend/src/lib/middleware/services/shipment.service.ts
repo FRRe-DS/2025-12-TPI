@@ -248,7 +248,7 @@ class ShipmentService {
         return response.shipments.map(mapApiShippingToDTO);
       }
 
-      // Si ya es un array (formato legacy o mock), devolverlo directamente
+      // Si ya es un array (formato legacy), devolverlo directamente
       if (Array.isArray(response)) {
         return response;
       }

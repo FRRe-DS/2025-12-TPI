@@ -92,75 +92,12 @@ export default function ShipmentDetailPage() {
       }
     } catch (err) {
       console.error('Error loading shipment:', err);
-      // Mock data for development
-      setShipment(generateMockShipment(id));
-      setNewStatus(generateMockShipment(id).status);
+      setError(err instanceof Error ? err.message : 'Error al cargar el envío');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateMockShipment = (id: string): ShipmentDTO => {
-    const statuses = ['PENDING', 'PROCESSING', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'];
-    const cities = ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena'];
-    const statusIndex = parseInt(id.slice(-1), 16) % statuses.length;
-
-    return {
-      id,
-      orderId: 1000 + parseInt(id.slice(-2), 16),
-      originAddress: {
-        street: 'Calle 100 #15-20',
-        city: 'Bogotá',
-        state: 'Cundinamarca',
-        postal_code: '110111',
-        country: 'Colombia'
-      },
-      destinationAddress: {
-        street: 'Carrera 43A #14-58',
-        city: cities[statusIndex % cities.length],
-        state: 'Antioquia',
-        postal_code: '050001',
-        country: 'Colombia'
-      },
-      products: [
-        {
-          id: 'prod-1',
-          name: 'Laptop Dell XPS 15',
-          quantity: 1,
-          weight: 2.5,
-          dimensions: { length: 40, width: 30, height: 5 }
-        },
-        {
-          id: 'prod-2',
-          name: 'Mouse Logitech MX Master 3',
-          quantity: 2,
-          weight: 0.3,
-          dimensions: { length: 15, width: 10, height: 5 }
-        }
-      ],
-      transportMethod: {
-        id: 'tm-1',
-        name: 'Terrestre Express'
-      },
-      driver: {
-        id: 'drv-1',
-        name: 'Carlos Rodríguez',
-        phone: '+57 300 123 4567',
-        licenseNumber: 'DRV123456'
-      },
-      vehicle: {
-        id: 'veh-1',
-        licensePlate: 'ABC123',
-        model: 'Toyota HiAce 2022',
-        capacity: 1000
-      },
-      status: statuses[statusIndex],
-      totalCost: 85000,
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-      estimatedDeliveryDate: new Date(Date.now() + 86400000 * 2).toISOString(),
-      actualDeliveryDate: statuses[statusIndex] === 'DELIVERED' ? new Date().toISOString() : undefined
-    };
-  };
 
   const handleCancelShipment = async () => {
     if (!shipment) return;
