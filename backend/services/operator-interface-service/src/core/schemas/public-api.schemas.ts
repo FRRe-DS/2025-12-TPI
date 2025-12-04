@@ -91,23 +91,3 @@ export class TransportMethodSchema {
   average_speed: number;
 }
 
-export class RouteSchema {
-  @ApiProperty({ example: 'b1eebc99-...' })
-  id: string;
-
-  @ApiProperty({ example: 'Ruta Norte - Matutina' })
-  name: string;
-
-  @ApiProperty({ example: 'planned' })
-  status: string;
-
-  @ApiProperty({ example: '2025-12-01T08:00:00Z' })
-  start_date: string;
-
-  @ApiProperty()
-  vehicle_id: string;
-
-  @ApiProperty()
-  driver_id: string;
-}
-

@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsNumber, IsEnum } from 'class-validator';
+import { IsString, IsInt, IsNumber, IsEnum, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateVehicleDto {
@@ -60,4 +60,24 @@ export class CreateVehicleDto {
   })
   @IsString()
   status: string;
+
+  @ApiProperty({
+    description: 'ID del método de transporte asociado',
+    example: 'uuid-1234',
+    required: false,
+    nullable: true,
+  })
+  @IsString()
+  @IsOptional()
+  transportMethodId?: string | null;
+
+  @ApiProperty({
+    description: 'ID del conductor asignado',
+    example: 'uuid-5678',
+    required: false,
+    nullable: true,
+  })
+  @IsString()
+  @IsOptional()
+  driverId?: string | null;
 }

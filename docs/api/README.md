@@ -1,120 +1,267 @@
-# 📡 Documentación de APIs - Visión General
+# 📡 Documentación de APIs
 
-> **📖 IMPORTANTE: Para documentación técnica completa y actualizada, ver:**  
-> **[Backend API Documentation](../backend/docs/api/README.md)**
-> 
-> Esta es una guía general. La documentación detallada con ejemplos completos,  
-> modelos de datos actualizados y testing está en `/backend/docs/api/README.md`.
+Documentación completa de los endpoints disponibles en el sistema de logística.
+
+**Última actualización:** Diciembre 2025
 
 ---
 
+## 🌐 API Gateway
 
-## APIs Disponibles
+Todos los servicios están expuestos a través del **API Gateway** en el puerto `3004`.
 
-### 1. API Externa (Pública)
-**Archivo**: `openapilog.yaml`
-**Descripción**: API para integración con sistemas externos (Portal de Compras, Stock)
+**URL Base (desarrollo):** `http://localhost:3004`
 
-**Endpoints principales**:
-- `POST /shipping/cost` - Calcular costo de envío
-- `POST /shipping` - Crear envío
-- `GET /shipping` - Listar envíos
-- `GET /shipping/:id` - Obtener envío
-- `POST /shipping/:id/cancel` - Cancelar envío
-- `GET /transport-methods` - Listar métodos de transporte
+El Gateway rutea automáticamente las peticiones a los microservicios correspondientes:
+- `/config/*` → Config Service (puerto 3003)
+- `/shipping/*` → Shipping Service (puerto 3001)
+- `/stock/*` → Stock Integration Service (puerto 3002)
 
-### 2. API Interna (Administración)
-**Archivo**: `openapiint.yml`
-**Descripción**: API para administración y configuración del sistema
+📖 **Para más detalles sobre el Gateway, ver:** [backend/02-API-GATEWAY.md](../backend/02-API-GATEWAY.md)
 
-**Endpoints principales**:
-- `GET /config/transport-methods` - Listar métodos de transporte
-- `POST /config/transport-methods` - Crear método de transporte
-- `PATCH /config/transport-methods/:id` - Actualizar método
-- `GET /config/coverage-zones` - Listar zonas de cobertura
-- `POST /config/coverage-zones` - Crear zona de cobertura
-- `PATCH /config/coverage-zones/:id` - Actualizar zona
+---
 
-## Especificaciones OpenAPI
+## 📋 Servicios Disponibles
 
-### Swagger UI
-- **Desarrollo**: http://localhost:3000/api/docs
-- **Producción**: https://apilogistica.mmalgor.com.ar/api/docs
+### 1. Config Service (Configuración)
 
-### Validación
-- **Entrada**: DTOs con class-validator
-- **Salida**: Tipos TypeScript generados
-- **Errores**: Códigos HTTP/S estándares
+**Responsabilidades:**
+- Gestión de métodos de transporte
+- Gestión de zonas de cobertura
+- Configuración de tarifas
+- Gestión de vehículos y conductores
 
-## Autenticación
+**Endpoints principales:**
+```
+GET    /config/transport-methods
+POST   /config/transport-methods
+PATCH  /config/transport-methods/:id
+DELETE /config/transport-methods/:id
+
+GET    /config/coverage-zones
+POST   /config/coverage-zones
+PATCH  /config/coverage-zones/:id
+DELETE /config/coverage-zones/:id
+
+GET    /config/vehicles
+POST   /config/vehicles
+PATCH  /config/vehicles/:id
+
+GET    /config/drivers
+POST   /config/drivers
+PATCH  /config/drivers/:id
+```
+
+**Swagger UI:** http://localhost:3003/api
+
+---
+
+### 2. Shipping Service (Envíos)
+
+**Responsabilidades:**
+- Cotización de envíos
+- Creación y gestión de envíos
+- Planificación de rutas
+- Tracking de envíos
+
+**Endpoints principales:**
+```
+POST   /shipping/cost              # Cotizar envío
+POST   /shipping                   # Crear envío
+GET    /shipping                   # Listar envíos
+GET    /shipping/:id               # Obtener envío
+PATCH  /shipping/:id               # Actualizar envío
+POST   /shipping/:id/cancel        # Cancelar envío
+POST   /shipping/:id/deliver       # Marcar como entregado
+GET    /shipping/:trackingCode     # Tracking público
+```
+
+**Swagger UI:** http://localhost:3001/api
+
+---
+
+### 3. Stock Integration Service (Integración Stock)
+
+**Responsabilidades:**
+- Integración con API de Stock externa
+- Validación de productos y disponibilidad
+- Gestión de retiros en depósitos
+
+**Endpoints principales:**
+```
+GET    /stock/products/:id         # Obtener producto
+POST   /stock/reserve              # Reservar stock
+POST   /stock/release              # Liberar reserva
+GET    /stock/availability         # Consultar disponibilidad
+```
+
+**Swagger UI:** http://localhost:3002/api
+
+---
+
+## 🔐 Autenticación
 
 ### Desarrollo
-- Sin autenticación (modo desarrollo)
+Por defecto, en desarrollo **no hay autenticación** para facilitar el testing.
 
 ### Producción
-- JWT tokens (futuro) (aun no al 06/11/2025)
-- API keys para sistemas externos
+- **Keycloak** para autenticación de usuarios (interfaz de operador)
+- Los endpoints internos requieren token JWT válido
+- Los endpoints públicos (cotización, tracking) no requieren auth
 
-## Rate Limiting
-
-- **API Externa**: 100 requests/min por IP
-- **API Interna**: 1000 requests/min por usuario
-
-## Versionado
-
-- **Actual**: v1.0.0
-
-## Ejemplos de Uso
-
-### Calcular Costo de Envío
-```bash
-curl -X POST http://localhost:3000/shipping/cost \
-  -H "Content-Type: application/json" \
-  -d '{
-    "products": [
-      {
-        "productId": 1,
-        "quantity": 2,
-        "weight": 1.5,
-        "dimensions": {
-          "length": 30,
-          "width": 20,
-          "height": 10
-        }
-      }
-    ],
-    "deliveryAddress": {
-      "street": "Av. Corrientes 1234",
-      "city": "Buenos Aires",
-      "state": "CABA",
-      "postalCode": "C1043",
-      "country": "AR"
-    }
-  }'
-```
-
-### Crear Envío
-```bash
-curl -X POST http://localhost:3000/shipping \
-  -H "Content-Type: application/json" \
-  -d '{
-    "orderId": 12345,
-    "userId": 67890,
-    "products": [...],
-    "deliveryAddress": {...},
-    "transportType": "road"
-  }'
-```
-
-## Códigos de Error
-
-| Código | Descripción |
-|--------|-------------|
-| 400 | Bad Request - Datos inválidos |
-| 404 | Not Found - Recurso no encontrado |
-| 409 | Conflict - Recurso ya existe |
-| 500 | Internal Server Error |
+📖 **Para configuración de Keycloak, ver:** [KEYCLOAK_INTEGRATION.md](../KEYCLOAK_INTEGRATION.md)
 
 ---
 
-**Última actualización**: 6 de Noviembre de 2025
+## 📖 Documentación Swagger
+
+Cada microservicio expone su documentación Swagger/OpenAPI:
+
+| Servicio | URL Swagger (desarrollo) |
+|----------|--------------------------|
+| **API Gateway** | http://localhost:3004/api |
+| **Config Service** | http://localhost:3003/api |
+| **Shipping Service** | http://localhost:3001/api |
+| **Stock Integration** | http://localhost:3002/api |
+
+---
+
+## 🧪 Testing de APIs
+
+### Con cURL
+
+```bash
+# Listar métodos de transporte (via Gateway)
+curl http://localhost:3004/config/transport-methods
+
+# Cotizar envío (via Gateway)
+curl -X POST http://localhost:3004/shipping/cost \
+  -H "Content-Type: application/json" \
+  -d '{
+    "origin": {"latitude": -27.451, "longitude": -58.986},
+    "destination": {"latitude": -27.468, "longitude": -58.837},
+    "weight": 5.0,
+    "dimensions": {"length": 30, "width": 20, "height": 15}
+  }'
+
+# Obtener tracking (via Gateway)
+curl http://localhost:3004/shipping/TRACK123456
+```
+
+### Con Postman
+
+1. Importar colección desde `/backend/postman/logistics-api.json` (si existe)
+2. Configurar `baseUrl` variable a `http://localhost:3004`
+3. Ejecutar requests desde la colección
+
+### Con Swagger UI
+
+1. Abrir http://localhost:3004/api (Gateway)
+2. Explorar endpoints disponibles
+3. Usar "Try it out" para testear directamente
+
+---
+
+## 📊 Códigos de Respuesta HTTP
+
+| Código | Significado | Uso |
+|--------|-------------|-----|
+| `200` | OK | Operación exitosa (GET, PATCH) |
+| `201` | Created | Recurso creado exitosamente (POST) |
+| `204` | No Content | Operación exitosa sin contenido (DELETE) |
+| `400` | Bad Request | Datos de entrada inválidos |
+| `401` | Unauthorized | Token faltante o inválido |
+| `403` | Forbidden | Sin permisos para la operación |
+| `404` | Not Found | Recurso no encontrado |
+| `422` | Unprocessable Entity | Validación de negocio fallida |
+| `500` | Internal Server Error | Error del servidor |
+| `503` | Service Unavailable | Servicio temporalmente no disponible |
+
+---
+
+## 🔄 Formato de Respuestas
+
+### Respuesta Exitosa
+```json
+{
+  "id": 1,
+  "name": "Moto",
+  "capacity": 10,
+  "status": "active"
+}
+```
+
+### Respuesta con Lista
+```json
+[
+  {
+    "id": 1,
+    "name": "Moto"
+  },
+  {
+    "id": 2,
+    "name": "Auto"
+  }
+]
+```
+
+### Respuesta de Error
+```json
+{
+  "statusCode": 400,
+  "message": ["El campo 'name' es requerido"],
+  "error": "Bad Request"
+}
+```
+
+---
+
+## 📝 Validación de Datos
+
+Todos los endpoints validan automáticamente usando:
+
+- **DTOs** con `class-validator`
+- **Transformación** automática con `class-transformer`
+- **Sanitización** de datos de entrada
+- **Tipos TypeScript** estrictos
+
+Ejemplo de validación:
+```typescript
+export class CreateTransportMethodDto {
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @IsNumber()
+  @Min(0)
+  capacity: number;
+}
+```
+
+---
+
+## 🚀 Rate Limiting
+
+Por seguridad, se aplican límites de requests:
+
+| Contexto | Límite | Ventana |
+|----------|--------|---------|
+| API pública (cotización, tracking) | 100 req | 1 minuto |
+| API autenticada | 1000 req | 1 minuto |
+| Por IP en total | 500 req | 1 minuto |
+
+Cuando se excede el límite:
+- Status code: `429 Too Many Requests`
+- Headers incluyen `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+
+---
+
+## 🔗 Enlaces Útiles
+
+- **[Backend Microservices](../backend/01-MICROSERVICES.md)** - Arquitectura de microservicios
+- **[API Gateway](../backend/02-API-GATEWAY.md)** - Funcionamiento del Gateway
+- **[API Reference](../backend/04-API-REFERENCE.md)** - Documentación detallada de todos los endpoints
+
+---
+
+**Última actualización:** Diciembre 3, 2025

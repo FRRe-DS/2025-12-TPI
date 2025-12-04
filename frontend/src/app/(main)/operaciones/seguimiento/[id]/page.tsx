@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { shipmentService, ShipmentDTO } from '@/app/lib/middleware/services/shipment.service';
-import { stockService, StockReserva } from '@/app/lib/middleware/services/stock.service';
+import { shipmentService, ShipmentDTO } from '@/lib/middleware/services/shipment.service';
+import { stockService, StockReserva } from '@/lib/middleware/services/stock.service';
+import { useVehicles } from '@/lib/middleware/stores/composables/useVehicles';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -16,7 +17,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/app/components/ui/confirm-dialog';
+} from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 export default function ShipmentDetailPage() {
   const params = useParams();
@@ -30,6 +42,27 @@ export default function ShipmentDetailPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [reservation, setReservation] = useState<StockReserva | null>(null);
+
+  const { items: vehicles } = useVehicles();
+  const [isAssigningVehicle, setIsAssigningVehicle] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+
+  const handleAssignVehicle = async () => {
+    if (!shipment || !selectedVehicleId) return;
+
+    setIsUpdating(true);
+    try {
+      await shipmentService.updateShipment(shipment.id, { vehicleId: selectedVehicleId });
+      toast.success('Vehículo asignado exitosamente');
+      setIsAssigningVehicle(false);
+      await loadShipment();
+    } catch (err) {
+      console.error('Error assigning vehicle:', err);
+      toast.error('Error al asignar vehículo');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   useEffect(() => {
     loadShipment();
@@ -59,75 +92,12 @@ export default function ShipmentDetailPage() {
       }
     } catch (err) {
       console.error('Error loading shipment:', err);
-      // Mock data for development
-      setShipment(generateMockShipment(id));
-      setNewStatus(generateMockShipment(id).status);
+      setError(err instanceof Error ? err.message : 'Error al cargar el envío');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateMockShipment = (id: string): ShipmentDTO => {
-    const statuses = ['PENDING', 'PROCESSING', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'];
-    const cities = ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena'];
-    const statusIndex = parseInt(id.slice(-1), 16) % statuses.length;
-
-    return {
-      id,
-      orderId: 1000 + parseInt(id.slice(-2), 16),
-      originAddress: {
-        street: 'Calle 100 #15-20',
-        city: 'Bogotá',
-        state: 'Cundinamarca',
-        postal_code: '110111',
-        country: 'Colombia'
-      },
-      destinationAddress: {
-        street: 'Carrera 43A #14-58',
-        city: cities[statusIndex % cities.length],
-        state: 'Antioquia',
-        postal_code: '050001',
-        country: 'Colombia'
-      },
-      products: [
-        {
-          id: 'prod-1',
-          name: 'Laptop Dell XPS 15',
-          quantity: 1,
-          weight: 2.5,
-          dimensions: { length: 40, width: 30, height: 5 }
-        },
-        {
-          id: 'prod-2',
-          name: 'Mouse Logitech MX Master 3',
-          quantity: 2,
-          weight: 0.3,
-          dimensions: { length: 15, width: 10, height: 5 }
-        }
-      ],
-      transportMethod: {
-        id: 'tm-1',
-        name: 'Terrestre Express'
-      },
-      driver: {
-        id: 'drv-1',
-        name: 'Carlos Rodríguez',
-        phone: '+57 300 123 4567',
-        licenseNumber: 'DRV123456'
-      },
-      vehicle: {
-        id: 'veh-1',
-        licensePlate: 'ABC123',
-        model: 'Toyota HiAce 2022',
-        capacity: 1000
-      },
-      status: statuses[statusIndex],
-      totalCost: 85000,
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-      estimatedDeliveryDate: new Date(Date.now() + 86400000 * 2).toISOString(),
-      actualDeliveryDate: statuses[statusIndex] === 'DELIVERED' ? new Date().toISOString() : undefined
-    };
-  };
 
   const handleCancelShipment = async () => {
     if (!shipment) return;
@@ -337,6 +307,49 @@ export default function ShipmentDetailPage() {
                 </AlertDialogContent>
               </AlertDialog>
             )}
+            {/* Assign Vehicle */}
+            <Dialog open={isAssigningVehicle} onOpenChange={setIsAssigningVehicle}>
+              <DialogTrigger asChild>
+                <button
+                  disabled={isUpdating || !canUpdateStatus}
+                  className="px-4 py-2 bg-slate-800 text-white text-sm rounded-lg hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {shipment.vehicle ? 'Cambiar Vehículo' : 'Asignar Vehículo'}
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Asignar Vehículo</DialogTitle>
+                  <DialogDescription>
+                    Seleccione un vehículo para asignar a este envío.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <Label htmlFor="vehicle-select" className="mb-2 block">Vehículo</Label>
+                  <select
+                    id="vehicle-select"
+                    value={selectedVehicleId}
+                    onChange={(e) => setSelectedVehicleId(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Seleccionar vehículo...</option>
+                    {vehicles.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.license_plate} - {v.model} ({v.capacityKg}kg)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAssigningVehicle(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleAssignVehicle} disabled={!selectedVehicleId || isUpdating}>
+                    {isUpdating ? 'Asignando...' : 'Guardar'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 

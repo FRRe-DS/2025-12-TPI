@@ -45,7 +45,8 @@
     "lint": "eslint \"{shared,services}/**/*.ts\" --fix",
     "clean": "rimraf shared/*/node_modules shared/*/dist services/*/node_modules services/*/dist",
     "prisma:generate": "pnpm -C shared/database prisma:generate",
-    "prisma:migrate": "pnpm -C shared/database prisma:migrate"
+    "prisma:migrate": "pnpm -C shared/database prisma:migrate",
+    "test:e2e": "pnpm -C test-e2e test"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

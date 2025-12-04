@@ -38,7 +38,7 @@ import { TransportMethodsResponseDto } from './dto/transport-methods.dto';
 @ApiTags('📦 Logística - Gestión de Envíos')
 @Controller('shipping')
 export class ShippingController {
-  constructor(private readonly shippingService: ShippingService) {}
+  constructor(private readonly shippingService: ShippingService) { }
 
   @Post('cost')
   @HttpCode(HttpStatus.CREATED)
@@ -264,12 +264,11 @@ export class ShippingController {
     @Body() dto: UpdateShippingStatusDto | Partial<CreateShippingRequestDto>,
   ): Promise<ShippingDetailDto> {
     // Si el body tiene 'status', usar updateStatus
-    if (dto && typeof dto === 'object' && 'status' in dto) {
+    if (dto && typeof dto === 'object' && 'status' in dto && Object.keys(dto).length === 1) {
       return this.shippingService.updateStatus(id, dto as UpdateShippingStatusDto);
     }
-    // Por ahora, solo soportamos actualización de estado
-    // En el futuro se puede extender para actualizar otros campos
-    throw new BadRequestException('Only status updates are currently supported. Use { status: "..." }');
+
+    return this.shippingService.updateShipment(id, dto as any);
   }
 
   @Post(':id/cancel')

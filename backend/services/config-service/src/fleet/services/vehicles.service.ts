@@ -8,7 +8,7 @@ import { isUUID } from 'class-validator';
 export class VehiclesService {
   private readonly logger = new Logger(VehiclesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(createVehicleDto: CreateVehicleDto): Promise<Vehicle> {
     try {
@@ -26,7 +26,12 @@ export class VehiclesService {
   }
 
   async findAll(): Promise<Vehicle[]> {
-    return this.prisma.vehicle.findMany();
+    return this.prisma.vehicle.findMany({
+      include: {
+        transportMethod: true,
+        driver: true,
+      },
+    });
   }
 
   async findOne(id: string): Promise<Vehicle> {
@@ -35,6 +40,10 @@ export class VehiclesService {
     }
     const vehicle = await this.prisma.vehicle.findUnique({
       where: { id },
+      include: {
+        transportMethod: true,
+        driver: true,
+      },
     });
     if (!vehicle) {
       throw new NotFoundException(`Vehicle with ID "${id}" not found`);

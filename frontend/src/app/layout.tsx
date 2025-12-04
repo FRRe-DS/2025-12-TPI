@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { KeycloakProvider } from "./lib/middleware/auth/KeycloakProvider";
+import { KeycloakProvider } from "@/lib/middleware/auth/KeycloakProvider";
 
 /*
 const geistSans = Geist({

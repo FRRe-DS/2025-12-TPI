@@ -1,22 +1,28 @@
-# 🚀 Guías de Despliegue - Arquitectura de Microservicios
+# 🚀 Deployment - Guía de Despliegue
 
-## 📋 Información General
+Guía completa para desplegar el sistema de logística en diferentes entornos.
 
-Este proyecto utiliza una **arquitectura de microservicios** con los siguientes componentes:
+**Última actualización:** Diciembre 2025
 
-### Servicios Backend
-- **Config Service** (puerto 3003): Gestión de configuraciones, métodos de transporte y zonas de cobertura
-- **Shipping Service** (puerto 3001): Cálculo de costos de envío y operaciones de transporte
-- **Stock Integration Service** (puerto 3002): Integración con sistemas de inventario
-- **Operator Interface Service** (puerto 3004): API principal y gateway
+---
+
+## 📋 Arquitectura de Despliegue
+
+### Servicios Backend (Microservicios)
+- **Config Service** (puerto 3003): Gestión de configuraciones, métodos de transporte, zonas de cobertura, vehículos y conductores
+- **Shipping Service** (puerto 3001): Cotización, creación y gestión de envíos, planificación de rutas
+- **Stock Integration Service** (puerto 3002): Integración con API externa de stock
+- **Operator Interface Service** (puerto 3004): **API Gateway** - punto único de entrada
 
 ### Servicios de Infraestructura
-- **PostgreSQL** (puerto 5432): Base de datos principal
-- **Redis** (puerto 6379): Cache y sesiones
+- **PostgreSQL** (puerto 5432): Base de datos principal compartida
+- **Redis** (puerto 6379): Caché para cotizaciones y stock
 - **Keycloak** (puerto 8080): Autenticación y autorización
 
 ### Frontend
-- **Next.js App** (puerto 3000): Interfaz de usuario
+- **Next.js App** (puerto 3005): Interfaz de operador
+
+---
 
 ## 🐳 Despliegue Local con Docker (Recomendado)
 
@@ -26,72 +32,42 @@ Este proyecto utiliza una **arquitectura de microservicios** con los siguientes 
 - Git
 - Al menos 4GB RAM disponible
 
-### 1. Clonar y Configurar el Proyecto
-```bash
-# Clonar repositorio
-git clone https://github.com/FRRe-DS/2025-12-TPI.git
-cd 2025-12-TPI
-```
-
-### 2. Configurar Variables de Entorno para Supabase
-
-**Importante**: Los microservicios usan **Supabase** como base de datos. Debes configurar las variables de entorno antes de levantar los servicios.
-
-#### Crear archivo .env en la raíz del proyecto
+### 1. Clonar el Repositorio
 
 ```bash
-# En la raíz del proyecto
-cat > .env << 'EOF'
-# URLs de Supabase (obtenerlas desde tu proyecto en Supabase)
-DATABASE_URL=postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
-DIRECT_URL=postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:5432/postgres
-EOF
+git clone https://github.com/FRRe-DS/2025-12-TPI-1.git
+cd 2025-12-TPI-1
 ```
 
-**Cómo obtener las URLs de Supabase:**
-1. Ve a tu proyecto en [Supabase Dashboard](https://app.supabase.com)
-2. Ve a **Settings** → **Database**
-3. Copia la **Connection string** (URI) para `DATABASE_URL`
-4. Para `DIRECT_URL`, usa la misma URL pero con puerto `5432` en lugar de `6543`
+### 2. Configurar Variables de Entorno
 
-**Ejemplo de URLs:**
-```bash
-DATABASE_URL=postgresql://postgres.abcdefghijklmnop:[TU_PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
-DIRECT_URL=postgresql://postgres.abcdefghijklmnop:[TU_PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
-```
-
-**Nota**: 
-- **Keycloak** usa su propia base de datos PostgreSQL local (se crea automáticamente)
-- Los **microservicios** usan Supabase (configurar en `.env`)
-- Los archivos `.env` individuales por servicio son opcionales
-
-#### Ubicación de archivos .env:
+#### Archivo .env en la raíz del proyecto
 
 ```bash
-# Config Service
-backend/services/config-service/.env
-# Copiar desde: backend/services/config-service/env.example
+# Base de datos PostgreSQL (local)
+DATABASE_URL="postgresql://postgres:postgres123@postgres:5432/logistics_db?schema=public"
+DIRECT_URL="postgresql://postgres:postgres123@postgres:5432/logistics_db?schema=public"
 
-# Operator Interface Service  
-backend/services/operator-interface-service/.env
-# Copiar desde: backend/services/operator-interface-service/env.example
+# Redis
+REDIS_URL="redis://redis:6379"
 
-# Shipping Service (si existe)
-backend/services/shipping-service/.env
+# Keycloak
+KEYCLOAK_ADMIN_PASSWORD="ds2025"
 
-# Stock Integration Service (si existe)
-backend/services/stock-integration-service/.env
+# APIs externas (opcional)
+DISTANCE_API_KEY="your-api-key"
 
-# Frontend (opcional, para desarrollo local)
-frontend/.env.local
+# Frontend
+NEXT_PUBLIC_API_URL="http://localhost:3004"
 ```
 
-**Importante**: 
-- En Docker Compose, las variables se configuran en `docker-compose.yml`
-- Los `.env` son útiles para desarrollo local sin Docker
-- No commitees archivos `.env` (deben estar en `.gitignore`)
+**Nota:**
+- En Docker Compose, las variables se inyectan desde `docker-compose.yml`
+- Los servicios se comunican usando nombres de servicio como hostnames (ej: `postgres`, `redis`)
+- No commitear archivos `.env` con credenciales reales
 
-### 3. Despliegue Completo con Docker Compose
+### 3. Iniciar Todos los Servicios
+
 ```bash
 # Levantar todos los servicios (construye imágenes si no existen)
 docker-compose up -d --build
@@ -104,147 +80,177 @@ docker-compose ps
 ```
 
 ### 4. Ejecutar Migraciones de Base de Datos
+
 ```bash
-# Instalar dependencias del backend (necesario para Prisma)
-cd backend
+# Opción 1: Desde la raíz del proyecto (requiere pnpm instalado)
 pnpm install
+pnpm run prisma:generate
+pnpm run prisma:migrate
 
-# Generar cliente Prisma
-pnpm prisma:generate
-
-# Ejecutar migraciones
-pnpm prisma:migrate
+# Opción 2: Dentro del contenedor de un servicio
+docker-compose exec config-service sh -c "cd /app/backend/shared/database && pnpm prisma migrate deploy"
 
 # (Opcional) Cargar datos de ejemplo
-# pnpm prisma:db:seed
+docker-compose exec config-service sh -c "cd /app/backend/shared/database && pnpm prisma db seed"
 ```
 
 ### 5. Verificar Despliegue
+
 ```bash
-# Verificar que todos los servicios estén saludables
+# Verificar health de todos los servicios
 curl http://localhost:3003/health  # Config Service
 curl http://localhost:3001/health  # Shipping Service
 curl http://localhost:3002/health  # Stock Service
-curl http://localhost:3004/health  # Operator Interface
-curl http://localhost:3000          # Frontend
+curl http://localhost:3004/health  # API Gateway
+curl http://localhost:3005          # Frontend
+
+# Verificar estado agregado desde el Gateway
+curl http://localhost:3004/gateway/status
 ```
 
 ### 6. Acceder a las Aplicaciones
-- **Frontend**: http://localhost:3000
-- **API Gateway**: http://localhost:3004
+
+- **Frontend**: http://localhost:3005
+- **API Gateway** (único que frontend conoce): http://localhost:3004
 - **Keycloak Admin**: http://localhost:8080 (admin/ds2025)
 - **Swagger Docs**:
-  - Config Service: http://localhost:3003/api/docs
-  - Shipping Service: http://localhost:3001/api/docs
-  - Stock Service: http://localhost:3002/api/docs
-  - Operator Interface: http://localhost:3004/api/docs
+  - API Gateway: http://localhost:3004/api
+  - Config Service: http://localhost:3003/api
+  - Shipping Service: http://localhost:3001/api
+  - Stock Service: http://localhost:3002/api
 
 ### 7. Detener Servicios
+
 ```bash
 # Detener todos los servicios
 docker-compose down
 
-# Detener y eliminar volúmenes (borra datos)
+# Detener y eliminar volúmenes (borra datos de BD)
 docker-compose down -v
 ```
+
+---
 
 ## 🔧 Despliegue Manual (Desarrollo Local sin Docker)
 
 ### Prerrequisitos
-- Node.js >= 18.x
-- pnpm
+- Node.js >= 20.x
+- pnpm >= 8.x
 - PostgreSQL >= 15
 - Redis >= 7.x
 - Git
 
-### 1. Configurar Base de Datos
+### 1. Configurar Infraestructura
+
 ```bash
-# Instalar PostgreSQL localmente o usar Docker
+# Opción 1: Instalar PostgreSQL localmente
+# (Depende del sistema operativo)
+
+# Opción 2: PostgreSQL con Docker
 docker run -d --name postgres-local -p 5432:5432 \
   -e POSTGRES_DB=logistics_db \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=postgres123 \
   postgres:16-alpine
 
-# Instalar Redis localmente o usar Docker
+# Redis con Docker
 docker run -d --name redis-local -p 6379:6379 redis:7-alpine
 ```
 
-### 2. Configurar Servicios Individuales
+### 2. Configurar Base de Datos
 
-#### Config Service
+```bash
+# Desde la raíz del proyecto
+cd backend/shared/database
+
+# Instalar dependencias
+pnpm install
+
+# Ejecutar migraciones
+pnpm prisma migrate dev
+
+# Generar cliente Prisma
+pnpm prisma generate
+
+# (Opcional) Cargar datos de ejemplo
+pnpm prisma db seed
+```
+
+### 3. Configurar y Levantar Servicios Backend
+
+#### Terminal 1: Config Service
 ```bash
 cd backend/services/config-service
 cp env.example .env
-# Editar .env con credenciales de BD
+# Editar .env con credenciales locales
 pnpm install
-pnpm run build
-pnpm run start:prod
+pnpm run start:dev
 ```
 
-#### Shipping Service
+#### Terminal 2: Shipping Service
 ```bash
 cd backend/services/shipping-service
 cp env.example .env
 pnpm install
-pnpm run build
-pnpm run start:prod
+pnpm run start:dev
 ```
 
-#### Stock Integration Service
+#### Terminal 3: Stock Integration Service
 ```bash
 cd backend/services/stock-integration-service
 cp env.example .env
 pnpm install
-pnpm run build
-pnpm run start:prod
+pnpm run start:dev
 ```
 
-#### Operator Interface Service
+#### Terminal 4: Operator Interface Service (Gateway)
 ```bash
 cd backend/services/operator-interface-service
 cp env.example .env
 pnpm install
-pnpm run build
-pnpm run start:prod
+pnpm run start:dev
 ```
 
-### 3. Configurar Keycloak
-```bash
-# Usar Docker Compose solo para Keycloak
-cd keycloak
-docker-compose -f docker-compose.local.yml up -d
-```
+### 4. Configurar y Levantar Frontend
 
-### 4. Configurar Frontend
 ```bash
+# Terminal 5
 cd frontend
+cp .env.example .env.local
+# Configurar NEXT_PUBLIC_API_URL=http://localhost:3004
 pnpm install
-pnpm run build
-pnpm start
+pnpm dev
 ```
 
-## 🐳 Build de Imágenes Docker Individuales
+### 5. Configurar Keycloak (Opcional)
 
-Cada servicio se construye desde la **raíz del monorepo**:
+```bash
+# Usar Docker para Keycloak
+docker run -d -p 8080:8080 \
+  -e KEYCLOAK_ADMIN=admin \
+  -e KEYCLOAK_ADMIN_PASSWORD=ds2025 \
+  quay.io/keycloak/keycloak:latest start-dev
+```
+
+---
+
+## 🏗️ Build de Imágenes Docker
+
+### Build Individual de Servicios
+
+Todos los builds se ejecutan desde la **raíz del monorepo**:
 
 ```bash
 # Config Service
 docker build \
   -f backend/services/config-service/Dockerfile \
   -t logistics-config-service:latest \
-  --build-arg SERVICE_PATH=backend/services/config-service \
-  --build-arg SERVICE_FILTER=@logistics/config-service \
-  --build-arg PORT=3003 \
   .
 
 # Shipping Service
 docker build \
   -f backend/services/shipping-service/Dockerfile \
   -t logistics-shipping-service:latest \
-  --build-arg SERVICE_PATH=backend/services/shipping-service \
-  --build-arg SERVICE_FILTER=@logistics/shipping-service \
-  --build-arg PORT=3001 \
   .
 
 # Stock Integration Service
@@ -253,13 +259,10 @@ docker build \
   -t logistics-stock-service:latest \
   .
 
-# Operator Interface Service
+# Operator Interface Service (Gateway)
 docker build \
   -f backend/services/operator-interface-service/Dockerfile \
   -t logistics-operator-service:latest \
-  --build-arg SERVICE_PATH=backend/services/operator-interface-service \
-  --build-arg SERVICE_FILTER=@logistics/operator-interface-service \
-  --build-arg PORT=3004 \
   .
 
 # Frontend
@@ -269,111 +272,148 @@ docker build \
   frontend/
 ```
 
+### Build con Docker Compose
+
+```bash
+# Construir todas las imágenes
+docker-compose build
+
+# Construir sin caché (útil para troubleshooting)
+docker-compose build --no-cache
+
+# Construir un servicio específico
+docker-compose build config-service
+```
+
+---
+
 ## 🚀 Despliegue en Producción
+
+### Variables de Entorno para Producción
+
+```bash
+# Base de datos (usar PostgreSQL gestionado como AWS RDS, Google Cloud SQL, etc.)
+DATABASE_URL="postgresql://user:password@production-host:5432/logistics_db?schema=public&connection_limit=10"
+DIRECT_URL="postgresql://user:password@production-host:5432/logistics_db?schema=public"
+
+# Redis (usar Redis Cloud, AWS ElastiCache, etc.)
+REDIS_URL="redis://:password@production-redis-host:6379"
+
+# Frontend URL (para CORS)
+FRONTEND_URL="https://logistics.example.com"
+
+# APIs externas
+DISTANCE_API_KEY="production-api-key"
+
+# Seguridad
+JWT_SECRET="generate-random-secret-512-bits"
+KEYCLOAK_ADMIN_PASSWORD="strong-production-password"
+
+# Node environment
+NODE_ENV="production"
+```
 
 ### Estrategias de Despliegue
 
-#### Opción 1: Docker Compose
+#### Opción 1: Docker Compose en VPS
+
 ```bash
-# Para producción, usar docker-compose con variables de entorno de producción
-docker-compose up -d --build
+# 1. Conectar al servidor
+ssh user@production-server
+
+# 2. Clonar repositorio
+git clone https://github.com/FRRe-DS/2025-12-TPI-1.git
+cd 2025-12-TPI-1
+
+# 3. Configurar variables de entorno
+nano .env
+
+# 4. Levantar servicios
+docker-compose -f docker-compose.prod.yml up -d
+
+# 5. Ejecutar migraciones
+docker-compose exec config-service sh -c "cd /app/backend/shared/database && pnpm prisma migrate deploy"
 ```
 
-### Variables de Producción
-```bash
-# Base de datos (usar servicios gestionados)
-export DATABASE_URL="postgresql://user:pass@host:5432/db"
-export DIRECT_URL="postgresql://user:pass@host:5432/db"
+#### Opción 2: Kubernetes (Escalable)
 
-# Redis (usar Redis Cloud o AWS ElastiCache)
-export REDIS_URL="redis://user:pass@host:6379"
-
-# APIs externas
-export DISTANCE_API_KEY="your-production-api-key"
-
-# Seguridad
-export JWT_SECRET="your-production-jwt-secret"
-export KEYCLOAK_ADMIN_PASSWORD="strong-production-password"
-```
-
-## 🔄 CI/CD Pipeline
-
-### GitHub Actions para Microservicios
-
-#### Workflow de Testing Completo
 ```yaml
-name: Test Microservices
-on: [push, pull_request]
-
-jobs:
-  test-backend:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service: [config-service, shipping-service, stock-integration-service, operator-interface-service]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      - name: Setup PostgreSQL
-        uses: harmon758/postgresql-action@v1
-        with:
-          postgresql version: '16'
-          postgresql db: 'logistics_test'
-          postgresql user: 'postgres'
-          postgresql password: 'postgres'
-      - name: Setup Redis
-        uses: supercharge/redis-github-action@1.8.0
-      - name: Install dependencies
-        run: |
-          cd backend/services/${{ matrix.service }}
-          pnpm install
-      - name: Run tests
-        run: |
-          cd backend/services/${{ matrix.service }}
-          pnpm run test:e2e
-
-  test-frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      - name: Install dependencies
-        run: |
-          cd frontend
-          pnpm install
-      - name: Run tests
-        run: |
-          cd frontend
-          pnpm run test
+# Ejemplo de Deployment para Config Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: config-service
+  template:
+    metadata:
+      labels:
+        app: config-service
+    spec:
+      containers:
+      - name: config-service
+        image: logistics-config-service:v1.0.0
+        ports:
+        - containerPort: 3003
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: url
 ```
+
+#### Opción 3: Dokploy / Coolify (Recomendado para este proyecto)
+
+- **Dokploy** o **Coolify** son plataformas self-hosted similares a Vercel/Heroku
+- Deployment automático desde Git
+- Configuración de variables de entorno vía UI
+- Soporte para monorepos
+
+```bash
+# Configurar cada servicio en Dokploy:
+# 1. Config Service: backend/services/config-service
+# 2. Shipping Service: backend/services/shipping-service
+# 3. Stock Service: backend/services/stock-integration-service
+# 4. Gateway: backend/services/operator-interface-service
+# 5. Frontend: frontend/
+```
+
+---
 
 ## 📊 Monitoreo y Observabilidad
 
-### Health Checks por Servicio
+### Health Checks
+
 ```bash
 # Verificar todos los servicios
 curl http://localhost:3003/health  # Config Service
 curl http://localhost:3001/health  # Shipping Service
 curl http://localhost:3002/health  # Stock Service
-curl http://localhost:3004/health  # Operator Interface
-curl http://localhost:3000          # Frontend
-curl http://localhost:8080/realms/ds-2025-realm/.well-known/openid-connect  # Keycloak
+curl http://localhost:3004/health  # API Gateway
+curl http://localhost:3005          # Frontend
 
-# Health checks detallados
-curl http://localhost:3004/health/details  # Información completa del sistema
+# Health check agregado desde Gateway
+curl http://localhost:3004/gateway/status
 ```
 
-### Logs por Servicio
+**Respuesta esperada del Gateway:**
+```json
+{
+  "status": "ok",
+  "services": {
+    "config": "healthy",
+    "shipping": "healthy",
+    "stock": "healthy"
+  }
+}
+```
+
+### Logs
+
 ```bash
 # Logs de todos los servicios
 docker-compose logs -f
@@ -385,53 +425,138 @@ docker-compose logs -f operator-interface-service
 
 # Logs con timestamps
 docker-compose logs -f --timestamps
+
+# Ver solo errores
+docker-compose logs -f | grep -i error
 ```
 
-### Métricas y Monitoreo
+### Métricas (Implementación Futura)
+
 ```bash
-# Métricas de cada servicio (si están habilitadas)
+# Endpoints de métricas (si están habilitados)
 curl http://localhost:3003/metrics  # Config Service
 curl http://localhost:3001/metrics  # Shipping Service
-curl http://localhost:9090/metrics  # Métricas agregadas
+curl http://localhost:3004/metrics  # Gateway
 ```
 
-#### Métricas Clave por Servicio
-- **Config Service**: Consultas a BD, cache hits/misses, latencia de respuestas
-- **Shipping Service**: Cálculos de costos, llamadas a APIs externas, timeouts
-- **Stock Service**: Consultas de inventario, respuestas de APIs externas
-- **Operator Interface**: Throughput, rate limiting, errores de autenticación
+**Métricas recomendadas para monitorear:**
+- **Config Service**: Latencia de consultas a BD, cache hits/misses
+- **Shipping Service**: Tiempo de cálculo de rutas, llamadas a API de distancia
+- **Stock Service**: Latencia de API externa, cache hits
+- **Gateway**: Throughput, errores de proxy, latencia de requests
 
-## 🔄 Estrategias de Rollback
+---
 
-### Rollback por Servicio
-```bash
-# Rollback de un servicio específico
-docker-compose up -d --scale <service-name>=0
-docker-compose up -d --scale <service-name>=1 --no-deps
+## 🔄 CI/CD
 
-# Rollback completo
-docker-compose down
-git checkout <previous-commit>
-docker-compose up -d
+### GitHub Actions
+
+**Archivo:** `.github/workflows/test.yml`
+
+```yaml
+name: Test & Build
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [config-service, shipping-service, stock-integration-service, operator-interface-service]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: logistics_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run migrations
+        run: |
+          cd backend/shared/database
+          pnpm prisma migrate deploy
+
+      - name: Build service
+        run: |
+          cd backend/services/${{ matrix.service }}
+          pnpm run build
+
+      - name: Run tests
+        run: |
+          cd backend/services/${{ matrix.service }}
+          pnpm run test:e2e
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          pnpm install
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          pnpm run build
 ```
 
-### Versionado de Imágenes
-```bash
-# Etiquetado semántico
-docker tag logistics-config-service:latest logistics-config-service:v1.2.3
-docker push logistics-config-service:v1.2.3
+---
 
-# Rollback a versión específica
-# Editar docker-compose.yml:
-#   config-service:
-#     image: logistics-config-service:v1.2.2  # Versión anterior
-```
-
-## 🔧 Troubleshooting - Problemas Comunes
+## 🔧 Troubleshooting
 
 ### Servicios No Inician
 
 #### PostgreSQL Connection Issues
+
 ```bash
 # Verificar estado del contenedor
 docker-compose ps postgres
@@ -442,91 +567,129 @@ docker-compose logs postgres
 # Verificar conectividad
 docker-compose exec postgres pg_isready -U postgres -d logistics_db
 
-# Reset de base de datos
-docker-compose exec postgres psql -U postgres -d logistics_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+# Conectar a la BD para debug
+docker-compose exec postgres psql -U postgres -d logistics_db
 ```
 
 #### Redis Connection Issues
+
 ```bash
 # Verificar conectividad
 docker-compose exec redis redis-cli ping
 
 # Verificar logs
 docker-compose logs redis
+
+# Limpiar caché
+docker-compose exec redis redis-cli FLUSHALL
 ```
 
 #### Servicio No Puede Conectar a Dependencias
+
 ```bash
 # Verificar variables de entorno
-docker-compose exec <service-name> env | grep -E "(DATABASE|REDIS|CONFIG|SERVICE)"
+docker-compose exec config-service env | grep -E "(DATABASE|REDIS)"
 
 # Verificar conectividad entre servicios
-docker-compose exec config-service curl http://postgres:5432
-docker-compose exec shipping-service curl http://config-service:3003/health
+docker-compose exec config-service nc -zv postgres 5432
+docker-compose exec shipping-service nc -zv redis 6379
+docker-compose exec frontend nc -zv operator-interface-service 3004
 ```
 
 ### Problemas de Base de Datos
 
 #### Migraciones Fallidas
+
 ```bash
 # Verificar estado de migraciones
-cd backend
+cd backend/shared/database
 pnpm prisma migrate status
 
 # Aplicar migraciones manualmente
 pnpm prisma migrate deploy
 
-# Reset completo (⚠️ Borra datos)
+# Reset completo (⚠️ BORRA TODOS LOS DATOS)
 pnpm prisma migrate reset --force
 ```
 
-#### Conexión a Prisma Issues
-```bash
-# Verificar schema de Prisma
-cd backend
-pnpm prisma db pull
+#### "Table does not exist" Errors
 
-# Generar cliente
+```bash
+# Regenerar cliente Prisma
+cd backend/shared/database
 pnpm prisma generate
+
+# Aplicar migraciones
+pnpm prisma migrate deploy
+
+# Si persiste, verificar schema
+pnpm prisma db pull
+```
+
+### Problemas de Gateway
+
+#### Gateway no rutea correctamente
+
+```bash
+# Verificar registro de servicios
+curl http://localhost:3004/gateway/status
+
+# Verificar logs del Gateway
+docker-compose logs -f operator-interface-service
+
+# Verificar que servicios estén accesibles
+curl http://localhost:3003/health
+curl http://localhost:3001/health
+curl http://localhost:3002/health
+```
+
+#### CORS Errors
+
+```bash
+# Verificar configuración de CORS en Gateway
+docker-compose exec operator-interface-service env | grep FRONTEND_URL
+
+# Verificar headers CORS
+curl -H "Origin: http://localhost:3005" \
+     -H "Access-Control-Request-Method: GET" \
+     -v http://localhost:3004/config/transport-methods
 ```
 
 ### Problemas de Frontend
 
-#### Build Issues - Error de Google Fonts
-Si ves errores como "Failed to fetch Geist from Google Fonts" durante el build:
+#### Build Issues - Google Fonts
+
 ```bash
-# El build necesita conexión a internet para descargar fuentes
-# Soluciones:
-# 1. Asegurar que Docker tenga acceso a internet
-# 2. Construir con network host:
+# El build necesita internet para descargar fuentes
+# Construir con network host:
 docker build --network=host -f frontend/Dockerfile -t logistics-frontend:latest frontend/
-
-# 3. O cambiar a fuentes locales en frontend/src/app/layout.tsx
-```
-
-#### Build Issues - Dependencias
-```bash
-# Verificar dependencias
-cd frontend
-pnpm ls
-
-# Rebuild forzado
-docker-compose build --no-cache frontend
-docker-compose up -d frontend
 ```
 
 #### API Connection Issues
+
 ```bash
-# Verificar configuración de NEXT_PUBLIC_API_URL
+# Verificar configuración
 docker-compose exec frontend env | grep NEXT_PUBLIC
 
-# Verificar conectividad con API
+# Verificar conectividad con Gateway
 docker-compose exec frontend curl http://operator-interface-service:3004/health
 
-# Verificar CORS
-curl -H "Origin: http://localhost:3000" \
-     -H "Access-Control-Request-Method: GET" \
-     http://localhost:3004/health
+# Verificar desde host
+curl http://localhost:3004/health
+```
+
+#### Frontend muestra página en blanco
+
+```bash
+# Verificar logs de Next.js
+docker-compose logs -f frontend
+
+# Verificar build
+docker-compose build --no-cache frontend
+docker-compose up -d frontend
+
+# Verificar que el Gateway esté accesible
+curl http://localhost:3004/gateway/status
 ```
 
 ### Comandos Útiles para Debug
@@ -535,24 +698,84 @@ curl -H "Origin: http://localhost:3000" \
 # Ver estado completo del sistema
 docker-compose ps -a
 
-# Ver logs de errores recientes
-docker-compose logs --tail=100 -f | grep -i error
+# Ver uso de recursos
+docker stats
 
-# Ver uso de red
+# Ver redes Docker
 docker network ls
-docker network inspect logistics_logistics-network
+docker network inspect 2025-12-tpi-1_default
+
+# Entrar a un contenedor para debug
+docker-compose exec config-service sh
 
 # Backup de base de datos
-docker-compose exec postgres pg_dump -U postgres logistics_db > backup.sql
+docker-compose exec postgres pg_dump -U postgres logistics_db > backup-$(date +%Y%m%d).sql
 
 # Restore de base de datos
-docker-compose exec -T postgres psql -U postgres logistics_db < backup.sql
+docker-compose exec -T postgres psql -U postgres logistics_db < backup-20251203.sql
 
-# Limpiar contenedores huérfanos
+# Limpiar Docker
 docker system prune -f
 docker volume prune -f
 ```
 
+### Logs Estructurados
+
+```bash
+# Ver solo requests HTTP
+docker-compose logs -f | grep "HTTP"
+
+# Ver errores de base de datos
+docker-compose logs -f | grep -i "prisma\|postgres"
+
+# Ver errores de Redis
+docker-compose logs -f | grep -i "redis"
+
+# Exportar logs a archivo
+docker-compose logs > logs-$(date +%Y%m%d-%H%M%S).txt
+```
+
 ---
 
-**Última actualización**: $(date +%d) de $(date +%B) de 2025
+## 🔒 Seguridad en Producción
+
+### Checklist de Seguridad
+
+- [ ] Cambiar contraseñas por defecto (PostgreSQL, Keycloak, etc.)
+- [ ] Usar HTTPS con certificados SSL (Let's Encrypt)
+- [ ] Configurar firewall para exponer solo puertos necesarios
+- [ ] Habilitar rate limiting en Gateway
+- [ ] Rotar credenciales regularmente
+- [ ] Habilitar logs de auditoría
+- [ ] Implementar backup automático de BD
+- [ ] Configurar monitoreo y alertas
+- [ ] Revisar dependencias con `pnpm audit`
+- [ ] Configurar secrets management (no usar `.env` en producción)
+
+### Configuración de Firewall
+
+```bash
+# Solo exponer puertos públicos
+ufw allow 80/tcp    # HTTP (redirige a HTTPS)
+ufw allow 443/tcp   # HTTPS
+ufw allow 22/tcp    # SSH (solo desde IPs confiables)
+ufw deny 5432/tcp   # PostgreSQL (no exponer)
+ufw deny 6379/tcp   # Redis (no exponer)
+ufw deny 3003/tcp   # Config Service (no exponer)
+ufw deny 3001/tcp   # Shipping Service (no exponer)
+ufw deny 3002/tcp   # Stock Service (no exponer)
+ufw enable
+```
+
+---
+
+## 🔗 Enlaces
+
+- **[Arquitectura del Sistema](../architecture/README.md)** - Diseño y patrones
+- **[API Gateway](../backend/02-API-GATEWAY.md)** - Funcionamiento del Gateway
+- **[Base de Datos](../database/README.md)** - Schema y migraciones
+- **[API Reference](../api/README.md)** - Documentación de endpoints
+
+---
+
+**Última actualización:** Diciembre 3, 2025

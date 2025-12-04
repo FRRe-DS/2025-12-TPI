@@ -9,8 +9,7 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class PrismaService
   extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+  implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
@@ -76,8 +75,7 @@ export class PrismaService
     }
 
     // Eliminar en orden correcto para respetar foreign keys
-    await this.routeStop.deleteMany();
-    await this.route.deleteMany();
+
     await this.vehicle.deleteMany();
     await this.driver.deleteMany();
     await this.tariffConfig.deleteMany();

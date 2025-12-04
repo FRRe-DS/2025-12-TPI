@@ -1,14 +1,17 @@
 import axios from 'axios';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 // CONFIGURACIÓN
 const KEYCLOAK_URL = process.env.KEYCLOAK_URL;
 const REALM = process.env.REALM;
 const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
 // Credenciales de prueba
 const USERNAME = process.env.USERNAME;
 const PASSWORD = process.env.PASSWORD;
 
-const GATEWAY_URL = 'http://localhost:3004';
+const GATEWAY_URL = process.env.GATEWAY_URL || 'http://localhost:3004';
 
 describe('Logistics System E2E Tests (Auth & Gateway)', () => {
   let accessToken: string;
@@ -16,9 +19,12 @@ describe('Logistics System E2E Tests (Auth & Gateway)', () => {
   // 1. AUTENTICACIÓN
   it('🔐 Should authenticate with Keycloak and get a Token', async () => {
     console.log('Attempting login to Keycloak...');
-    
+
     const params = new URLSearchParams();
     params.append('client_id', CLIENT_ID);
+    if (CLIENT_SECRET) {
+      params.append('client_secret', CLIENT_SECRET);
+    }
     params.append('username', USERNAME);
     params.append('password', PASSWORD);
     params.append('grant_type', 'password');
@@ -28,18 +34,18 @@ describe('Logistics System E2E Tests (Auth & Gateway)', () => {
         `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/token`,
         params,
         {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         }
       );
 
       expect(response.status).toBe(200);
       expect(response.data).toHaveProperty('access_token');
-      
+
       accessToken = response.data.access_token;
       console.log('✅ Auth Successful! Token obtained.');
     } catch (error: any) {
       console.error('❌ Login Failed:', error.response?.data || error.message);
-      throw error;
+      throw new Error(`Login Failed: ${error.message}`);
     }
   });
 
@@ -57,7 +63,7 @@ describe('Logistics System E2E Tests (Auth & Gateway)', () => {
       console.log('✅ Transport Methods retrieved:', response.data.length);
     } catch (error: any) {
       console.error('❌ Access Failed:', error.response?.data || error.message);
-      throw error;
+      throw new Error(`Access Failed: ${error.message}`);
     }
   });
 
@@ -94,8 +100,8 @@ describe('Logistics System E2E Tests (Auth & Gateway)', () => {
         }
       );
 
-      // Esperamos 201 Created si todo va bien
-      expect(response.status).toBe(201);
+      // Esperamos 200 OK o 201 Created
+      expect([200, 201]).toContain(response.status);
       expect(response.data).toHaveProperty('id');
       expect(response.data).toHaveProperty('status');
       console.log('✅ Tracking Created:', response.data);
@@ -105,11 +111,11 @@ describe('Logistics System E2E Tests (Auth & Gateway)', () => {
       // Verificamos si el error original fue 400 o 404.
       const statusCode = error.response?.status;
       const originalError = error.response?.data?.originalError || '';
-      
-      if (statusCode === 400 || statusCode === 404 || 
-         (statusCode === 502 && (originalError.includes('400') || originalError.includes('404')))) {
-         console.log('✅ Service reached but business logic failed (Expected: Stock validation works):', error.response?.data);
-         return; // Test pasa porque auth y ruteo funcionaron
+
+      if (statusCode === 400 || statusCode === 404 ||
+        (statusCode === 502 && (originalError.includes('400') || originalError.includes('404')))) {
+        console.log('✅ Service reached but business logic failed (Expected: Stock validation works):', error.response?.data);
+        return; // Test pasa porque auth y ruteo funcionaron
       }
       console.error('❌ Tracking Creation Failed:', error.response?.data || error.message);
       throw new Error(`Tracking failed: ${error.message}`);

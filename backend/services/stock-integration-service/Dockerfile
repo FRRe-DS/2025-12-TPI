@@ -110,6 +110,7 @@ FROM base AS runtime
 ARG SERVICE_PATH
 ARG PORT
 
+
 ENV NODE_ENV=production
 ENV PORT=${PORT}
 

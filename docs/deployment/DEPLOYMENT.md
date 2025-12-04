@@ -3,27 +3,24 @@
 ## Entornos
 
 ### Desarrollo Local
-- **Backend**: http://localhost:3000
-- **Frontend**: http://localhost:5173
-- **Base de datos**: Supabase (desarrollo)
-- **Cache**: Redis local
+- **Frontend**: http://localhost:3000
+- **API Gateway**: http://localhost:3004
+- **Base de datos**: Supabase (PostgreSQL)
+- **Cache**: Redis (Local via Docker)
+- **Auth**: Keycloak (Local via Docker)
 
-### Staging
-- **Backend**: https://staging-api.logistica.com
-- **Frontend**: https://staging.logistica.com
-- **Base de datos**: Supabase (staging)
-- **Cache**: Redis Cloud
+### Producción / Staging
+- **Frontend**: https://logistica.mmalgor.com.ar
+- **API Gateway**: https://api.logistica.mmalgor.com.ar (o similar)
+- **Base de datos**: Supabase (Cloud)
+- **Cache**: Redis (Cloud o Contenedor)
+- **Auth**: Keycloak (https://keycloak.mmalgor.com.ar)
 
-### Producción
-- **Backend**: https://api.logistica.com
-- **Frontend**: https://logistica.com
-- **Base de datos**: Supabase (producción)
-- **Cache**: Redis Cloud
+## Despliegue Local con Docker Compose (Recomendado)
 
-## Despliegue Local
+Esta es la forma más sencilla de levantar todo el ecosistema de microservicios.
 
 ### Prerrequisitos
-- Node.js >= 18.x
 - Docker & Docker Compose
 - Git
 
@@ -34,239 +31,93 @@ cd 2025-12-TPI
 ```
 
 ### 2. Configurar Variables de Entorno
+Crea un archivo `.env` en la raíz del proyecto. Este archivo alimenta a todos los servicios en Docker Compose.
 
-#### Backend
 ```bash
-cd backend
-cp .env.example .env
-# Editar .env con tus credenciales de Supabase
-```
+# .env
+# Supabase / PostgreSQL
+DATABASE_URL=postgresql://postgres.[REF]:[PASS]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
+DIRECT_URL=postgresql://postgres.[REF]:[PASS]@aws-0-[REGION].pooler.supabase.com:5432/postgres
 
-#### Frontend
-```bash
-cd frontend
-cp .env.example .env
-# Editar .env con la URL del backend
+# Keycloak
+KEYCLOAK_URL=https://keycloak.mmalgor.com.ar
+KEYCLOAK_REALM=ds-2025-realm
+KEYCLOAK_CLIENT_ID=grupo-12
+
+# APIs Externas (Stock)
+STOCK_API_URL=https://comprasg5.mmalgor.com.ar/v1
+STOCK_API_BEARER_TOKEN=tu_token_aqui
 ```
 
 ### 3. Levantar Servicios
 ```bash
-# PostgreSQL y Redis
-docker-compose up -d
+# Levantar todo (Frontend + Backend + DBs)
+docker-compose up -d --build
 
-# Backend
-cd backend
-npm install
-npx prisma generate
-npm run start:dev
-
-# Frontend (en otra terminal)
-cd frontend
-npm install
-npm run dev
+# Ver logs
+docker-compose logs -f
 ```
 
 ### 4. Verificar Despliegue
-- **Backend**: http://localhost:3000/api/docs
-- **Frontend**: http://localhost:5173
-- **Base de datos**: Verificar conexión en logs
+- **Frontend**: http://localhost:3000
+- **Operator Interface (Gateway)**: http://localhost:3004/health
+- **Shipping Service**: http://localhost:3001/health
+- **Stock Service**: http://localhost:3002/health
+- **Config Service**: http://localhost:3003/health
 
-## Despliegue con Docker
+## Despliegue Manual (Sin Docker Compose)
 
-### 1. Build de Imágenes
+Si prefieres correr los servicios individualmente (útil para desarrollo de un solo módulo).
+
+### 1. Backend
+Cada microservicio está en `backend/services/`.
+
 ```bash
-# Backend
-cd backend
-docker build -t logistica-backend .
+cd backend/services/shipping-service
+pnpm install
+# Configurar .env local
+pnpm start:dev
+```
 
-# Frontend
+### 2. Frontend
+```bash
 cd frontend
-docker build -t logistica-frontend .
-```
-
-### 2. Docker Compose
-```yaml
-version: '3.8'
-services:
-  backend:
-    image: logistica-backend
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      - redis
-
-  frontend:
-    image: logistica-frontend
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=http://backend:3000
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-```
-
-### 3. Ejecutar
-```bash
-docker-compose up -d
-```
-
-## Despliegue en Producción
-
-### 1. Preparar Entorno
-```bash
-# Configurar variables de entorno de producción
-export NODE_ENV=production
-export DATABASE_URL="postgresql://..."
-export REDIS_URL="redis://..."
-```
-
-### 2. Build de Producción
-```bash
-# Backend
-cd backend
-npm ci --only=production
-npm run build
-
-# Frontend
-cd frontend
-npm ci
-npm run build
-```
-
-### 3. Despliegue
-```bash
-# Usar tu plataforma preferida (Vercel, Netlify, etc.)
-# o servidor propio con PM2
-pm2 start ecosystem.config.js
+pnpm install
+# Configurar .env.local
+pnpm dev
 ```
 
 ## CI/CD Pipeline
 
-### GitHub Actions
+El proyecto utiliza GitHub Actions para integración continua.
 
-#### Workflow de Testing
-```yaml
-name: Test
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - run: npm ci
-      - run: npm test
-```
+### Workflows
+- **Build & Test**: Se ejecuta en cada Push/PR a `dev` y `main`.
+- **Deploy**: (Configuración pendiente según proveedor de hosting).
 
-#### Workflow de Deploy
-```yaml
-name: Deploy
-on:
-  push:
-    branches: [main]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Deploy to production
-        run: |
-          # Scripts de despliegue
-```
-
-## Monitoreo
-
-### Health Checks
-```bash
-# Backend
-curl http://localhost:3000/health
-
-# Frontend
-curl http://localhost:5173
-```
+## Monitoreo y Mantenimiento
 
 ### Logs
 ```bash
-# Backend logs
-docker logs logistica-backend
-
-# Frontend logs
-docker logs logistica-frontend
+# Ver logs de un servicio específico
+docker-compose logs -f shipping-service
+docker-compose logs -f operator-interface-service
 ```
 
-### Métricas
-- **Uptime**: Monitoreo de disponibilidad
-- **Performance**: Tiempo de respuesta
-- **Errores**: Rate de errores
-- **Recursos**: CPU, memoria, disco
-
-## Rollback
-
-### Estrategia de Rollback
-1. **Identificar versión estable**
-2. **Revertir código**
-3. **Re-desplegar**
-4. **Verificar funcionalidad**
-
-### Comandos de Rollback
+### Reiniciar un servicio
+Si haces cambios en el código de un servicio:
 ```bash
-# Git rollback
-git revert <commit-hash>
-
-# Docker rollback
-docker-compose down
-docker-compose up -d --scale backend=0
-docker-compose up -d --scale backend=1
+docker-compose build shipping-service
+docker-compose up -d shipping-service
 ```
 
-## Troubleshooting
-
-### Problemas Comunes
-
-#### Backend no inicia
+### Base de Datos (Prisma)
+Si necesitas aplicar migraciones manualmente:
 ```bash
-# Verificar variables de entorno
-echo $DATABASE_URL
-
-# Verificar conexión a base de datos
-npx prisma db pull
-
-# Verificar logs
-npm run start:dev
-```
-
-#### Frontend no carga
-```bash
-# Verificar build
-npm run build
-
-# Verificar variables de entorno
-echo $VITE_API_URL
-
-# Verificar conexión al backend
-curl $VITE_API_URL/health
-```
-
-#### Base de datos no conecta
-```bash
-# Verificar credenciales
-npx prisma db pull
-
-# Verificar migraciones
-npx prisma migrate status
-
-# Reset de base de datos
-npx prisma migrate reset
+cd backend
+pnpm prisma:migrate
 ```
 
 ---
 
-**Última actualización**: 16 de Octubre de 2025
+**Última actualización**: 4 de Diciembre de 2025

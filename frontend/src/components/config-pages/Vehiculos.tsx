@@ -23,6 +23,8 @@ import { useMemo, useState } from 'react';
 import { ConfirmDialog } from '../config/ConfirmDialog';
 import { Toolbar } from '../config/Toolbar';
 import { EmptyState } from '../config/EmptyState';
+import { useConfig } from '@/lib/middleware/stores/composables/useConfig';
+import { useDrivers } from '@/lib/middleware/stores/composables/useDrivers';
 import { useVehicles } from '@/lib/middleware/stores/composables/useVehicles';
 import type { VehicleDTO, CreateVehicleDTO, UpdateVehicleDTO } from '@/lib/middleware/services/vehicle.service';
 import { DataTable } from '../config/DataTable';
@@ -39,6 +41,9 @@ export function Vehiculos() {
     remove,
     setFilters,
   } = useVehicles();
+
+  const { transportMethods } = useConfig();
+  const { items: drivers } = useDrivers();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVehiculo, setEditingVehiculo] = useState<VehiculoDisplay | null>(null);
@@ -61,6 +66,8 @@ export function Vehiculos() {
       capacityKg: parseInt(data.capacityKg as string),
       volumeM3: parseFloat(data.volumeM3 as string),
       fuelType: data.fuelType as 'DIESEL' | 'GASOLINE' | 'ELECTRIC' | 'HYBRID',
+      transportMethodId: (data.transportMethodId as string) || null,
+      driverId: (data.driverId as string) || null,
     };
 
     if (editingVehiculo) {
@@ -101,6 +108,22 @@ export function Vehiculos() {
     { accessorKey: 'capacityKg', header: 'Capacidad (Kg)' },
     { accessorKey: 'volumeM3', header: 'Volumen (m³)' },
     { accessorKey: 'fuelType', header: 'Combustible' },
+    {
+      id: 'transportMethod',
+      header: 'Método de Transporte',
+      cell: ({ row }: { row: { original: VehicleDTO } }) => {
+        const tm = row.original.transportMethod;
+        return tm ? `${tm.name} (${tm.code})` : '-';
+      },
+    },
+    {
+      id: 'driver',
+      header: 'Conductor',
+      cell: ({ row }: { row: { original: VehicleDTO } }) => {
+        const driver = row.original.driver;
+        return driver ? `${driver.firstName} ${driver.lastName}` : '-';
+      },
+    },
     {
       accessorKey: 'status',
       header: 'Estado',
@@ -178,11 +201,11 @@ export function Vehiculos() {
             <div className="space-y-4">
               <div>
                 <Label htmlFor="license_plate">Patente *</Label>
-                <Input 
-                  id="license_plate" 
-                  name="license_plate" 
-                  defaultValue={editingVehiculo?.license_plate} 
-                  required 
+                <Input
+                  id="license_plate"
+                  name="license_plate"
+                  defaultValue={editingVehiculo?.license_plate}
+                  required
                   minLength={6}
                   maxLength={10}
                   placeholder="ABC123"
@@ -190,69 +213,69 @@ export function Vehiculos() {
               </div>
               <div>
                 <Label htmlFor="make">Marca *</Label>
-                <Input 
-                  id="make" 
-                  name="make" 
-                  defaultValue={editingVehiculo?.make} 
-                  required 
+                <Input
+                  id="make"
+                  name="make"
+                  defaultValue={editingVehiculo?.make}
+                  required
                   minLength={2}
                   maxLength={50}
                 />
               </div>
               <div>
                 <Label htmlFor="model">Modelo *</Label>
-                <Input 
-                  id="model" 
-                  name="model" 
-                  defaultValue={editingVehiculo?.model} 
-                  required 
+                <Input
+                  id="model"
+                  name="model"
+                  defaultValue={editingVehiculo?.model}
+                  required
                   minLength={2}
                   maxLength={50}
                 />
               </div>
               <div>
                 <Label htmlFor="year">Año *</Label>
-                <Input 
-                  id="year" 
-                  name="year" 
-                  type="number" 
-                  defaultValue={editingVehiculo?.year} 
-                  required 
+                <Input
+                  id="year"
+                  name="year"
+                  type="number"
+                  defaultValue={editingVehiculo?.year}
+                  required
                   min="1990"
                   max="2025"
                 />
               </div>
               <div>
                 <Label htmlFor="capacityKg">Capacidad (Kg) *</Label>
-                <Input 
-                  id="capacityKg" 
-                  name="capacityKg" 
-                  type="number" 
-                  defaultValue={editingVehiculo?.capacityKg} 
-                  required 
+                <Input
+                  id="capacityKg"
+                  name="capacityKg"
+                  type="number"
+                  defaultValue={editingVehiculo?.capacityKg}
+                  required
                   min="1"
                   max="50000"
                 />
               </div>
               <div>
                 <Label htmlFor="volumeM3">Volumen (m³) *</Label>
-                <Input 
-                  id="volumeM3" 
-                  name="volumeM3" 
-                  type="number" 
-                  step="0.1" 
-                  defaultValue={editingVehiculo?.volumeM3} 
-                  required 
+                <Input
+                  id="volumeM3"
+                  name="volumeM3"
+                  type="number"
+                  step="0.1"
+                  defaultValue={editingVehiculo?.volumeM3}
+                  required
                   min="0.1"
                   max="100"
                 />
               </div>
               <div>
                 <Label htmlFor="fuelType">Tipo de Combustible *</Label>
-                <select 
-                  id="fuelType" 
-                  name="fuelType" 
-                  defaultValue={editingVehiculo?.fuelType || 'GASOLINE'} 
+                <select
+                  id="fuelType"
+                  name="fuelType"
+                  defaultValue={editingVehiculo?.fuelType || 'GASOLINE'}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   required
                 >
@@ -262,13 +285,47 @@ export function Vehiculos() {
                   <option value="HYBRID">Híbrido</option>
                 </select>
               </div>
+
+              <div>
+                <Label htmlFor="transportMethodId">Método de Transporte</Label>
+                <select
+                  id="transportMethodId"
+                  name="transportMethodId"
+                  defaultValue={editingVehiculo?.transportMethodId || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">Seleccionar...</option>
+                  {transportMethods.map((tm) => (
+                    <option key={tm.id} value={tm.id}>
+                      {tm.name} ({tm.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label htmlFor="driverId">Conductor Asignado</Label>
+                <select
+                  id="driverId"
+                  name="driverId"
+                  defaultValue={editingVehiculo?.driverId || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">Seleccionar...</option>
+                  {drivers.map((driver) => (
+                    <option key={driver.id} value={driver.id}>
+                      {driver.firstName} {driver.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {editingVehiculo && (
                 <div>
                   <Label htmlFor="status">Estado *</Label>
-                  <select 
-                    id="status" 
-                    name="status" 
-                    defaultValue={editingVehiculo?.status || 'AVAILABLE'} 
+                  <select
+                    id="status"
+                    name="status"
+                    defaultValue={editingVehiculo?.status || 'AVAILABLE'}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                     required
                   >

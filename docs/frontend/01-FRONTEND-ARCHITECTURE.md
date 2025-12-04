@@ -9,7 +9,7 @@ Documentación completa del frontend Next.js 16 + React 19.
 ## 📊 Visión General
 
 ```
-Next.js Frontend (http://localhost:3000)
+Next.js Frontend (http://localhost:3005)
 ├─ Pages (App Router)
 │  ├─ Dashboard
 │  ├─ Configuration
@@ -613,9 +613,9 @@ export function MyComponent() {
 
 ```bash
 cd frontend
-npm test                    # Ejecutar tests
-npm run test:watch         # Watch mode
-npm run test:cov          # Coverage report
+pnpm test                    # Ejecutar tests
+pnpm run test:watch         # Watch mode
+pnpm run test:cov          # Coverage report
 ```
 
 ---
@@ -637,5 +637,4 @@ function Component() {
 
 ---
 
-**Última actualización:** 24 de Octubre, 2025
-**Responsable:** Grupo 12 TPI 2025
+**Última actualización:** Diciembre 3, 2025

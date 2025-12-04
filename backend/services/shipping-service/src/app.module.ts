@@ -17,6 +17,7 @@ import { HealthModule } from './health.module';
     HttpModule.register({
       timeout: 10000,
       maxRedirects: 5,
+      family: 4,
     }),
     PrismaModule,
     ShippingModule,

@@ -8,9 +8,9 @@ export interface TariffConfigDTO {
     code: string;
     name: string;
   };
-  baseTariff: string | number;
-  costPerKg: string | number;
-  costPerKm: string | number;
+  baseTariff: number;
+  costPerKg: number;
+  costPerKm: number;
   volumetricFactor: number;
   environment?: string;
   isActive?: boolean;

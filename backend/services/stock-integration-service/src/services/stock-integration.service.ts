@@ -25,6 +25,7 @@ interface ListReservasOptions {
 export class StockIntegrationService {
   private readonly logger = new Logger(StockIntegrationService.name);
   private readonly baseUrl: string;
+  private tokenCache: { token: string; expiresAt: number } | null = null;
 
   constructor(
     private readonly httpService: HttpService,
@@ -315,7 +316,7 @@ export class StockIntegrationService {
         `/reservas/${reservaId}`,
         {
           usuarioId: userId,
-          estado: estado,
+          estado: estado.toUpperCase(),
         },
         { headers: await this.getAuthHeaders() },
       );
@@ -545,15 +546,70 @@ export class StockIntegrationService {
       };
     }
 
-    this.logger.warn(
-      'STOCK_API_BEARER_TOKEN no configurado, usando token mock para Stock API',
-    );
+    try {
+      const token = await this.getValidToken();
+      return {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      };
+    } catch (error) {
+      this.logger.error('Failed to get auth token', error);
+      // Fallback to mock token if everything fails (or rethrow?)
+      // For now, let's keep the mock token fallback but log error
+      this.logger.warn(
+        'Using mock token due to auth failure',
+      );
+      return {
+        Authorization: 'Bearer mock-token',
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      };
+    }
+  }
 
-    return {
-      Authorization: 'Bearer mock-token',
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
+  private async getValidToken(): Promise<string> {
+    if (this.tokenCache && this.tokenCache.expiresAt > Date.now()) {
+      return this.tokenCache.token;
+    }
+
+    const token = await this.fetchKeycloakToken();
+    this.tokenCache = {
+      token,
+      expiresAt: Date.now() + 55 * 60 * 1000, // 55 minutes (slightly less than 1h)
     };
+    return token;
+  }
+
+  private async fetchKeycloakToken(): Promise<string> {
+    const keycloakUrl = this.configService.get<string>('KEYCLOAK_URL');
+    const realm = this.configService.get<string>('KEYCLOAK_REALM');
+    const clientId = this.configService.get<string>('KEYCLOAK_CLIENT_ID');
+    const clientSecret = this.configService.get<string>('KEYCLOAK_CLIENT_SECRET');
+    const grantType = this.configService.get<string>('KEYCLOAK_GRANT_TYPE', 'client_credentials');
+
+    if (!keycloakUrl || !realm || !clientId || !clientSecret) {
+      throw new Error('Missing Keycloak configuration for Stock Service');
+    }
+
+    const tokenUrl = `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`;
+    const params = new URLSearchParams({
+      grant_type: grantType,
+      client_id: clientId,
+      client_secret: clientSecret,
+    });
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(tokenUrl, params.toString(), {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        })
+      );
+      return response.data.access_token;
+    } catch (error) {
+      this.logger.error('Error fetching Keycloak token', error);
+      throw error;
+    }
   }
 
   private mapProductResponse(raw: any): ProductoStockDto {
@@ -612,20 +668,20 @@ export class StockIntegrationService {
       },
       imagenes: Array.isArray(raw.imagenes)
         ? raw.imagenes.map((imagen: any) => ({
-            url: imagen.url ?? '',
-            esPrincipal: Number(
-              typeof imagen.esPrincipal === 'boolean'
-                ? imagen.esPrincipal
-                : imagen.esPrincipal ?? 0,
-            ),
-          }))
+          url: imagen.url ?? '',
+          esPrincipal: Number(
+            typeof imagen.esPrincipal === 'boolean'
+              ? imagen.esPrincipal
+              : imagen.esPrincipal ?? 0,
+          ),
+        }))
         : undefined,
       categorias: Array.isArray(raw.categorias)
         ? raw.categorias.map((categoria: any) => ({
-            id: this.asNumber(categoria.id ?? Date.now()),
-            nombre: categoria.nombre ?? 'Sin categoría',
-            descripcion: categoria.descripcion,
-          }))
+          id: this.asNumber(categoria.id ?? Date.now()),
+          nombre: categoria.nombre ?? 'Sin categoría',
+          descripcion: categoria.descripcion,
+        }))
         : undefined,
     };
   }

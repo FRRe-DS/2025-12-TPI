@@ -197,51 +197,6 @@ Driver {
 
 **Relaciones**:
 - 1:N con Vehicle
-- 1:N con Route
-
----
-
-#### **9. Route** (Rutas) - NEW
-Sistema de rutas de distribución.
-
-```typescript
-Route {
-  id: UUID
-  name: VARCHAR
-  description: TEXT
-  status: VARCHAR // "PLANNED", "IN_PROGRESS", "COMPLETED"
-  startDate: TIMESTAMPTZ
-  endDate: TIMESTAMPTZ
-  transportMethodId: FK → TransportMethod
-  vehicleId: FK → Vehicle (nullable)
-  driverId: FK → Driver (nullable)
-  coverageZoneId: FK → CoverageZone (nullable)
-}
-```
-
-**Relaciones**:
-- N:1 con TransportMethod, Vehicle, Driver, CoverageZone
-- 1:N con RouteStop
-- 1:N con Shipment (asignación de envíos)
-
----
-
-#### **10. RouteStop** (Paradas de Ruta) - NEW
-Paradas individuales en cada ruta.
-
-```typescript
-RouteStop {
-  id: UUID
-  routeId: FK → Route (CASCADE DELETE)
-  sequence: INT
-  type: VARCHAR // "PICKUP", "DELIVERY", "TRANSIT", "FUEL", "REST"
-  address: JSONB // {street, city, state, postalCode, country}
-  coordinates: JSONB // {lat, lng}
-  scheduledTime: TIMESTAMPTZ
-  actualTime: TIMESTAMPTZ
-  status: VARCHAR // "PENDING", "IN_PROGRESS", "COMPLETED"
-}
-```
 
 ---
 
@@ -250,12 +205,10 @@ RouteStop {
 ### **Relaciones 1:N (Uno a Muchos)**
 
 ```
-TransportMethod (1) → (N) Shipment, Vehicle, Route, TariffConfig
-CoverageZone (1) → (N) Shipment, Route
-Shipment (1) → (N) ShipmentProduct, ShipmentLog, Route (asignación)
-Vehicle (1) → (N) Route
-Driver (1) → (N) Vehicle, Route
-Route (1) → (N) RouteStop
+TransportMethod (1) → (N) Shipment, Vehicle, TariffConfig
+CoverageZone (1) → (N) Shipment
+Shipment (1) → (N) ShipmentProduct, ShipmentLog
+Driver (1) → (N) Vehicle
 ```
 
 ### **Relaciones 1:1 (Uno a Uno)**
@@ -263,11 +216,6 @@ Route (1) → (N) RouteStop
 ```
 Vehicle (1) ↔ (1) Driver (opcional)
 ```
-
-### **Cascading**
-
-- `RouteStop.route_id` → `Route.id` (CASCADE DELETE)
-  - Si se elimina una ruta, se eliminan automáticamente sus paradas
 
 ---
 
@@ -286,12 +234,6 @@ vehicles:
   - status (filtrado por disponibilidad)
   - transport_method_id (relación)
   - driver_id (relación)
-
-routes:
-  - status (filtrado por estado)
-  - start_date (búsquedas por fecha)
-  - transport_method_id (relación)
-  - vehicle_id (relación)
   - driver_id (relación)
   - coverage_zone_id (relación)
 

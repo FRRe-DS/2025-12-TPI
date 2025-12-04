@@ -10,6 +10,18 @@ export interface VehicleDTO {
   volumeM3: number;
   fuelType: string;
   status: string;
+  transportMethodId?: string;
+  driverId?: string;
+  transportMethod?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  driver?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 export interface CreateVehicleDTO {
@@ -21,6 +33,8 @@ export interface CreateVehicleDTO {
   volumeM3: number;
   fuelType: 'DIESEL' | 'GASOLINE' | 'ELECTRIC' | 'HYBRID';
   status: string;
+  transportMethodId?: string | null;
+  driverId?: string | null;
 }
 
 export interface UpdateVehicleDTO extends Partial<CreateVehicleDTO> {

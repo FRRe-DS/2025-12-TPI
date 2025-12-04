@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Keycloak from 'keycloak-js';
-import { envConfig } from '@/app/lib/config/env.config';
+import { useAuth } from '@/lib/middleware/stores/composables/useAuth';
+import { envConfig } from '@/lib/config/env.config';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
@@ -33,7 +34,7 @@ export default function Home() {
     // Redirigir directamente a Keycloak (sin init previo)
     const redirectUri = `${window.location.origin}/auth/callback`;
     const loginUrl = `${envConfig.keycloak.url}/realms/${envConfig.keycloak.realm}/protocol/openid-connect/auth?client_id=${envConfig.keycloak.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid`;
-    
+
     console.log('🔗 Login URL:', loginUrl);
     window.location.href = loginUrl;
   };
@@ -94,7 +95,7 @@ export default function Home() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">PEPACK</h1>
-          <p className="text-gray-600 mt-2">Gestión Logística y de BOCA</p>
+          <p className="text-gray-600 mt-2">Gestión Logística</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">

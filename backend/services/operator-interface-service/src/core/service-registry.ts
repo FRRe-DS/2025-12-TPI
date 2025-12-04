@@ -47,7 +47,7 @@ export class ServiceRegistry {
       {
         name: 'config-service',
         baseUrl: process.env.CONFIG_SERVICE_URL || 'http://localhost:3003',
-        routes: ['/config', '/fleet'],
+        routes: ['/config', '/fleet', '/shipping/transport-methods'],
         healthCheckUrl: '/health',
       },
       {
@@ -118,7 +118,7 @@ export class ServiceRegistry {
       for (const routePrefix of service.routes) {
         // Verificamos si el path empieza con este prefijo
         // Aseguramos que coincida el segmento completo (ej: "/api" no matchee "/api-x")
-        if (path.startsWith(routePrefix) && (path.length === routePrefix.length || path[routePrefix.length] === '/')) {
+        if (path.startsWith(routePrefix) && (path.length === routePrefix.length || path[routePrefix.length] === '/' || path[routePrefix.length] === '?')) {
           if (routePrefix.length > longestMatchLength) {
             longestMatchLength = routePrefix.length;
             bestMatch = service;

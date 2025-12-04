@@ -13,7 +13,9 @@ import { PostalCodeValidationService } from './services/postal-code-validation.s
 
 @Module({
   imports: [
-    HttpModule,
+    HttpModule.register({
+      family: 4,
+    }),
     CacheModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (config: ConfigService) => ({
@@ -35,4 +37,4 @@ import { PostalCodeValidationService } from './services/postal-code-validation.s
   ],
   exports: [ShippingService],
 })
-export class ShippingModule {}
+export class ShippingModule { }

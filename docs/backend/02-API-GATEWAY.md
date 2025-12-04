@@ -552,13 +552,13 @@ healthCheckInterval: 30000  // 30 segundos entre health checks
 
 ```bash
 cd backend/services/operator-interface-service
-npm run build
+pnpm run build
 ```
 
 ### Iniciar Gateway
 
 ```bash
-npm run start:dev
+pnpm run start:dev
 # Logs: [Nest] 12345 - 10/24/2025, 12:30:00 PM   LOG [NestFactory] Nest application successfully started
 # Logs: ✅ Registered 3 services
 ```
@@ -615,7 +615,7 @@ curl http://localhost:3004/gateway/status | jq
 
 **Gateway no inicia:**
 ```bash
-npm run start:dev
+pnpm run start:dev
 # Ver error específico en logs
 ```
 
@@ -634,12 +634,11 @@ curl http://localhost:3003/health
 ps aux | grep "node.*start:dev"
 
 # Revisar logs de servicios individuales
-npm run start:dev:config
-npm run start:dev:shipping
-npm run start:dev:stock
+pnpm run start:dev:config
+pnpm run start:dev:shipping
+pnpm run start:dev:stock
 ```
 
 ---
 
-**Última actualización:** 24 de Octubre, 2025
-**Responsable:** Grupo 12 TPI 2025
+**Última actualización:** Diciembre 3, 2025

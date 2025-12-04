@@ -18,6 +18,7 @@ export function useAuth() {
 
   return {
     ...state,
+    hasRole: (role: string) => state.user?.roles?.includes(role) ?? false,
     login: (redirectUri?: string) => import('../../auth/auth.service').then(({ authService }) => authService.login(redirectUri)),
     logout: (redirectUri?: string) => import('../../auth/auth.service').then(({ authService }) => authService.logout(redirectUri)),
   };

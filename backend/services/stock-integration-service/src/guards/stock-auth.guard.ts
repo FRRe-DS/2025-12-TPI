@@ -12,7 +12,7 @@ export class StockAuthGuard implements CanActivate {
   private readonly logger = new Logger(StockAuthGuard.name);
   private tokenCache = new Map<string, { token: string; expiresAt: number }>();
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -73,6 +73,13 @@ export class StockAuthGuard implements CanActivate {
     );
 
     if (!keycloakUrl || !realm || !clientId || !clientSecret) {
+      this.logger.error('Missing Keycloak configuration:', {
+        keycloakUrl,
+        realm,
+        clientId,
+        hasClientSecret: !!clientSecret,
+        envKeycloakUrl: process.env.KEYCLOAK_URL, // Check direct env access
+      });
       throw new Error('Keycloak configuration is incomplete');
     }
 

@@ -19,10 +19,10 @@ export class AddressResponseDto {
   street: string;
   city: string;
   state: string;
-  
+
   @ApiProperty({ name: 'postal_code' })
   postal_code: string;
-  
+
   country: string;
 }
 
@@ -67,6 +67,20 @@ export class ShippingDetailDto {
 
   @ApiProperty({ name: 'updated_at' })
   updated_at: string;
+
+  @ApiProperty({ name: 'vehicle_id', required: false })
+  vehicle_id?: string;
+
+  @ApiProperty({ name: 'reservation_id', required: false })
+  reservation_id?: string;
+
+  @ApiProperty({ name: 'vehicle', required: false })
+  vehicle?: {
+    id: string;
+    licensePlate: string;
+    model: string;
+    capacity: number;
+  };
 
   logs: ShippingLogDto[];
 }
@@ -119,6 +133,20 @@ export class ShippingSummaryDto {
 
   @ApiProperty({ name: 'created_at' })
   created_at: string;
+
+  @ApiProperty({ name: 'vehicle_id', required: false })
+  vehicle_id?: string;
+
+  @ApiProperty({ name: 'reservation_id', required: false })
+  reservation_id?: string;
+
+  @ApiProperty({ name: 'vehicle', required: false })
+  vehicle?: {
+    id: string;
+    licensePlate: string;
+    model: string;
+    capacity: number;
+  };
 
   products: ProductQtyDto[];
 }

@@ -43,7 +43,7 @@ export class ServiceFacade {
   constructor(
     private serviceRegistry: ServiceRegistry,
     private httpService: HttpService,
-  ) {}
+  ) { }
 
   /**
    * Realiza una request HTTP a través del facade
@@ -88,7 +88,13 @@ export class ServiceFacade {
     }
 
     // 4. Construye la URL del servicio destino
-    const targetUrl = `${targetService.baseUrl}${path}`;
+    let finalPath = path;
+    if (path === '/shipping/transport-methods' && targetService.name === 'config-service') {
+      finalPath = '/config/transport-methods';
+      this.logger.log(`🔀 Rewriting path: ${path} -> ${finalPath}`);
+    }
+
+    const targetUrl = `${targetService.baseUrl}${finalPath}`;
 
     // 5. Timeout configurable por servicio (puede venir de env o configuración)
     const timeout = this.getServiceTimeout(targetService.name);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Package,
   TrendingUp,
@@ -16,16 +16,17 @@ import {
   Timer
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
+import { shipmentService, ShipmentDTO } from '@/lib/middleware/services/shipment.service';
+import { vehicleService, VehicleDTO } from '@/lib/middleware/services/vehicle.service';
 
 interface Pedido {
-  id: number;
+  id: string;
   numeroPedido: string;
   cliente: string;
   destino: string;
   estado: string;
   fechaCreacion: Date;
   fechaEntrega?: Date;
-  prioridad: 'alta' | 'media' | 'baja';
   valor: number;
 }
 
@@ -43,7 +44,7 @@ interface DistribucionZonas {
 interface PedidoEnProceso {
   numeroPedido: string;
   progreso: number;
-  id: number;
+  id: string;
   etapa: string;
 }
 
@@ -65,15 +66,17 @@ export default function Dashboard() {
     totalPedidos: 0,
     pedidosCompletados: 0,
     tiempoPromedioEntrega: 0,
-    eficienciaRutas: 0
+    eficienciaRutas: 0,
+    enTransito: 0,
+    vehiculosDisponibles: 0
   });
 
   const [pedidosRecientes, setPedidosRecientes] = useState<Pedido[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<string>('Cargando...');
   const [error, setError] = useState<string | null>(null);
-  const [backendStatus, setBackendStatus] = useState({ available: true, url: 'Modo Frontend' });
-  const [modeInfo, setModeInfo] = useState({ mode: 'mock', features: ['frontend-only'] });
+  const [backendStatus, setBackendStatus] = useState({ available: false, url: '' });
+  const [modeInfo, setModeInfo] = useState({ mode: 'backend', features: ['Datos en tiempo real'] });
 
   // Real-time dashboard data
   const [dashboardData, setDashboardData] = useState<DashboardData>({
@@ -84,149 +87,206 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    checkBackendStatus();
     loadDashboardData();
-    // No more polling - static data for frontend-only mode
+    // Polling cada 30 segundos para actualizar datos
+    const interval = setInterval(() => {
+      loadDashboardData();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  const checkBackendStatus = () => {
-    // Siempre disponible en modo frontend
-    setBackendStatus({ available: true, url: 'Modo Frontend' });
-    setModeInfo({ mode: 'mock', features: ['AGUANTE BOCA, LO LOGRASTE WACHO'] });
-  };
+  const checkBackendStatus = useCallback(async () => {
+    try {
+      // Intentar obtener envíos para verificar conexión
+      await shipmentService.getShipments();
+      setBackendStatus({ available: true, url: 'Backend Conectado' });
+      setModeInfo({ mode: 'backend', features: ['Datos en tiempo real', 'Actualización automática'] });
+    } catch (error) {
+      setBackendStatus({ available: false, url: 'Backend no disponible' });
+      setModeInfo({ mode: 'error', features: ['Error de conexión', 'Backend no disponible'] });
+    }
+  }, []);
 
   const retryBackendConnection = () => {
-    // Always successful in frontend-only mode
     setIsLoading(true);
-    setTimeout(() => {
-      setBackendStatus({ available: true, url: 'Frontend Mode' });
-      setModeInfo({ mode: 'mock', features: ['GUANTE BOCA, LO LOGRASTE WACHO'] });
-      setIsLoading(false);
-    }, 1000);
+    checkBackendStatus();
+    loadDashboardData();
   };
 
-  const loadDashboardData = () => {
+  // Función helper para procesar envíos y calcular métricas
+  const processShipmentsData = (shipments: ShipmentDTO[]) => {
+    const total = shipments.length;
+    const completados = shipments.filter(s => s.status === 'DELIVERED');
+    const enTransito = shipments.filter(s => s.status === 'IN_TRANSIT');
+    const creados = shipments.filter(s => s.status === 'CREATED');
+
+    // Calcular tiempo promedio de entrega
+    let totalTiempoEntrega = 0;
+    let tiempoCount = 0;
+    for (const shipment of completados) {
+      if (shipment.estimatedDeliveryDate && shipment.createdAt) {
+        const fechaCreacion = new Date(shipment.createdAt);
+        const fechaEntrega = new Date(shipment.estimatedDeliveryDate);
+        const dias = Math.ceil((fechaEntrega.getTime() - fechaCreacion.getTime()) / (1000 * 60 * 60 * 24));
+        if (dias > 0) {
+          totalTiempoEntrega += dias;
+          tiempoCount++;
+        }
+      }
+    }
+    const tiempoPromedio = tiempoCount > 0 ? Math.round(totalTiempoEntrega / tiempoCount) : 0;
+
+    // Calcular tasa de entrega
+    const tasaEntrega = total > 0 ? Math.round((completados.length / total) * 100) : 0;
+
+    return {
+      total,
+      completados: completados.length,
+      enTransito: enTransito.length,
+      creados: creados.length,
+      tiempoPromedio,
+      tasaEntrega
+    };
+  };
+
+  // Función helper para agrupar envíos por mes
+  const groupByMonth = (shipments: ShipmentDTO[]) => {
+    const meses: Record<string, { entregas: number; creados: number; cancelados: number }> = {};
+
+    shipments.forEach(shipment => {
+      const fecha = new Date(shipment.createdAt);
+      const mesKey = fecha.toLocaleDateString('es-AR', { month: 'short', year: 'numeric' });
+
+      if (!meses[mesKey]) {
+        meses[mesKey] = { entregas: 0, creados: 0, cancelados: 0 };
+      }
+
+      meses[mesKey].creados++;
+      if (shipment.status === 'DELIVERED') meses[mesKey].entregas++;
+      if (shipment.status === 'CANCELLED') meses[mesKey].cancelados++;
+    });
+
+    return Object.entries(meses)
+      .map(([mes, data]) => ({ mes, entregas: data.entregas, creados: data.creados }))
+      .sort((a, b) => {
+        const dateA = new Date(a.mes);
+        const dateB = new Date(b.mes);
+        return dateA.getTime() - dateB.getTime();
+      })
+      .slice(-6); // Últimos 6 meses
+  };
+
+  // Función helper para agrupar por ciudad
+  const groupByCity = (shipments: ShipmentDTO[]) => {
+    const ciudades: Record<string, number> = {};
+
+    shipments.forEach(shipment => {
+      const ciudad = shipment.destinationAddress?.city || 'Desconocida';
+      ciudades[ciudad] = (ciudades[ciudad] || 0) + 1;
+    });
+
+    const colors = ['#8B5CF6', '#14B8A6', '#3B82F6', '#F59E0B', '#EF4444', '#10B981'];
+    return Object.entries(ciudades)
+      .map(([zona, entregas], index) => ({
+        zona,
+        entregas,
+        color: colors[index % colors.length]
+      }))
+      .sort((a, b) => b.entregas - a.entregas)
+      .slice(0, 6);
+  };
+
+  const loadDashboardData = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Datos mock para modo frontend
-      const mockPedidos = [
-        {
-          id: 1,
-          numeroPedido: 'PED-2024-001',
-          cliente: 'Empresa ABC',
-          destino: 'Centro de Bogotá',
-          estado: 'entregado',
-          fechaCreacion: new Date('2024-01-15'),
-          fechaEntrega: new Date('2024-01-16'),
-          prioridad: 'alta' as const,
-          valor: 250000
-        },
-        {
-          id: 2,
-          numeroPedido: 'PED-2024-002',
-          cliente: 'Tienda XYZ',
-          destino: 'Norte de Medellín',
-          estado: 'entregado',
-          fechaCreacion: new Date('2024-01-14'),
-          fechaEntrega: new Date('2024-01-15'),
-          prioridad: 'media' as const,
-          valor: 180000
-        },
-        {
-          id: 3,
-          numeroPedido: 'PED-2024-003',
-          cliente: 'Supermercado Central',
-          destino: 'Sur de Cali',
-          estado: 'en_transito',
-          fechaCreacion: new Date('2024-01-13'),
-          prioridad: 'alta' as const,
-          valor: 320000
-        },
-        {
-          id: 4,
-          numeroPedido: 'PED-2024-004',
-          cliente: 'Farmacia Salud',
-          destino: 'Oeste de Barranquilla',
-          estado: 'entregado',
-          fechaCreacion: new Date('2024-01-12'),
-          fechaEntrega: new Date('2024-01-13'),
-          prioridad: 'baja' as const,
-          valor: 95000
-        }
-      ];
+      // Verificar estado del backend
+      await checkBackendStatus();
 
-      setPedidosRecientes(mockPedidos.slice(0, 4));
+      // Obtener datos de envíos
+      // El servicio devuelve un array de ShipmentDTO[]
+      const shipments = await shipmentService.getShipments({ limit: 100 });
 
-      // Calcular estadísticas desde datos mock
-      const pedidosCompletados = mockPedidos.filter(p => p.estado === 'entregado');
-      const pedidosEnTransito = mockPedidos.filter(p => p.estado === 'en_transito');
-
-      // Calcular tiempo promedio de entrega
-      let totalTiempoEntrega = 0;
-      let tiempoCount = 0;
-
-      for (const pedido of pedidosCompletados) {
-        if (pedido.fechaEntrega && pedido.fechaCreacion) {
-          const tiempoEntrega = Math.ceil((pedido.fechaEntrega.getTime() - pedido.fechaCreacion.getTime()) / (1000 * 60 * 60 * 24));
-          totalTiempoEntrega += tiempoEntrega;
-          tiempoCount++;
-        }
+      // Obtener datos de vehículos
+      let vehicles: VehicleDTO[] = [];
+      try {
+        vehicles = await vehicleService.getVehicles();
+      } catch (err) {
+        console.warn('No se pudieron obtener vehículos:', err);
       }
 
-      const tiempoPromedio = tiempoCount > 0 ? Math.round(totalTiempoEntrega / tiempoCount) : 0;
+      // Procesar métricas
+      const metrics = processShipmentsData(shipments);
 
+      // Calcular vehículos disponibles
+      const vehiculosDisponibles = vehicles.filter(v => v.status === 'AVAILABLE').length;
+
+      // Actualizar estadísticas
       setStats({
-        totalPedidos: mockPedidos.length,
-        pedidosCompletados: pedidosCompletados.length,
-        tiempoPromedioEntrega: tiempoPromedio,
-        eficienciaRutas: 92 // Valor mock
+        totalPedidos: metrics.total,
+        pedidosCompletados: metrics.completados,
+        tiempoPromedioEntrega: metrics.tiempoPromedio,
+        eficienciaRutas: metrics.tasaEntrega,
+        enTransito: metrics.enTransito,
+        vehiculosDisponibles
       });
 
-      // Datos mensuales de entregas
-      const entregasMensuales = [
-        { mes: 'Ene', entregas: 145 },
-        { mes: 'Feb', entregas: 152 },
-        { mes: 'Mar', entregas: 138 },
-        { mes: 'Abr', entregas: 161 },
-        { mes: 'May', entregas: 149 },
-        { mes: 'Jun', entregas: 155 }
-      ];
+      // Procesar envíos recientes (últimos 10, ordenados por fecha)
+      const recentShipments = [...shipments]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 10)
+        .map(s => ({
+          id: s.id,
+          numeroPedido: s.trackingNumber || s.id.substring(0, 8).toUpperCase(),
+          cliente: s.destinationAddress?.city || 'N/A',
+          destino: `${s.destinationAddress?.city || ''}, ${s.destinationAddress?.state || ''}`.trim(),
+          estado: s.status.toLowerCase().replace('_', ' '),
+          fechaCreacion: new Date(s.createdAt),
+          fechaEntrega: s.estimatedDeliveryDate ? new Date(s.estimatedDeliveryDate) : undefined,
+          valor: s.totalCost || 0
+        }));
 
-      // Distribución por zonas
-      const zonasData = [
-        { zona: 'Bogotá', entregas: 35, color: '#8B5CF6' },
-        { zona: 'Medellín', entregas: 28, color: '#14B8A6' },
-        { zona: 'Cali', entregas: 20, color: '#3B82F6' },
-        { zona: 'Barranquilla', entregas: 17, color: '#F59E0B' }
-      ];
+      setPedidosRecientes(recentShipments);
 
-      // Distribución de tiempos de entrega
+      // Procesar datos para gráficos
+      const entregasMensuales = groupByMonth(shipments);
+      const distribucionZonas = groupByCity(shipments);
+
+      // Envíos en proceso
+      const enProceso = shipments
+        .filter(s => ['CREATED', 'IN_TRANSIT'].includes(s.status))
+        .slice(0, 10)
+        .map(s => ({
+          numeroPedido: s.trackingNumber || s.id.substring(0, 8).toUpperCase(),
+          progreso: s.status === 'CREATED' ? 25 : s.status === 'IN_TRANSIT' ? 75 : 100,
+          id: s.id,
+          etapa: s.status === 'CREATED' ? 'Creado' : s.status === 'IN_TRANSIT' ? 'En tránsito' : 'Completado'
+        }));
+
+      // Distribución de tiempos de entrega (simplificado)
       const tiemposEntregaData = [
-        { rango: '1-2 días', cantidad: 45 },
-        { rango: '3-5 días', cantidad: 32 },
-        { rango: '6-7 días', cantidad: 18 },
-        { rango: '8+ días', cantidad: 5 }
+        { rango: '1-2 días', cantidad: Math.floor(metrics.completados * 0.3) },
+        { rango: '3-5 días', cantidad: Math.floor(metrics.completados * 0.4) },
+        { rango: '6-7 días', cantidad: Math.floor(metrics.completados * 0.2) },
+        { rango: '8+ días', cantidad: Math.floor(metrics.completados * 0.1) }
       ];
 
       setDashboardData({
-        entregasMensuales: entregasMensuales,
-        distribucionZonas: zonasData,
-        pedidosEnProceso: pedidosEnTransito.map((p) => ({
-          numeroPedido: p.numeroPedido,
-          progreso: 20 + Math.random() * 60, // Progreso aleatorio para demo
-          id: p.id,
-          etapa: 'En ruta de entrega'
-        })),
+        entregasMensuales: entregasMensuales.map(m => ({ mes: m.mes, entregas: m.entregas })),
+        distribucionZonas,
+        pedidosEnProceso: enProceso,
         tiemposEntrega: tiemposEntregaData
       });
 
-      // Guardar como string para evitar hydration mismatch
       setLastUpdate(new Date().toLocaleTimeString());
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
+      setError(error instanceof Error ? error.message : 'Error al cargar datos del dashboard');
+      // Si falla la conexión, mostrar error
+      if (!backendStatus.available) {
+        setModeInfo({ mode: 'error', features: ['Error de conexión', 'Backend no disponible'] });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -237,13 +297,29 @@ export default function Dashboard() {
   };
 
   const getEstadoColor = (estado: string) => {
-    switch (estado) {
-      case 'entregado': return 'bg-green-100 text-green-700';
-      case 'en_transito': return 'bg-blue-100 text-blue-700';
-      case 'pendiente': return 'bg-yellow-100 text-yellow-700';
-      case 'cancelado': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
+    const estadoLower = estado.toLowerCase();
+    if (estadoLower.includes('delivered') || estadoLower.includes('entregado')) {
+      return 'bg-green-100 text-green-700';
     }
+    if (estadoLower.includes('transit') || estadoLower.includes('tránsito')) {
+      return 'bg-blue-100 text-blue-700';
+    }
+    if (estadoLower.includes('created') || estadoLower.includes('pendiente')) {
+      return 'bg-yellow-100 text-yellow-700';
+    }
+    if (estadoLower.includes('cancelled') || estadoLower.includes('cancelado')) {
+      return 'bg-red-100 text-red-700';
+    }
+    return 'bg-gray-100 text-gray-700';
+  };
+
+  const formatEstado = (estado: string) => {
+    const estadoLower = estado.toLowerCase();
+    if (estadoLower.includes('delivered')) return 'Entregado';
+    if (estadoLower.includes('transit')) return 'En Tránsito';
+    if (estadoLower.includes('created')) return 'Creado';
+    if (estadoLower.includes('cancelled')) return 'Cancelado';
+    return estado;
   };
 
   // Glassmorphism styles using inline styles
@@ -300,7 +376,7 @@ export default function Dashboard() {
             }`}>
             {modeInfo.mode === 'backend'
               ? 'Sistema completo de gestión logística con optimización de rutas y seguimiento en tiempo real.'
-              : 'Estás experimentando la interfaz completa de PEPACK con datos realistas. Todas las funcionalidades están disponibles para pruebas de BOCA'
+              : 'Estás experimentando la interfaz completa de PEPACK con datos realistas. Todas las funcionalidades están disponibles para pruebas'
             }
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
@@ -357,9 +433,9 @@ export default function Dashboard() {
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
         <div>
           <h1 className="text-3xl bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
-            PEPACK - Gestión Logística y de BOCA
+            PEPACK - Gestión Logística
           </h1>
-          <p className="text-gray-600 mt-1">Sistema inteligente de gestión logística y seguimiento de entregas de BOCA.</p>
+          <p className="text-gray-600 mt-1">Sistema inteligente de gestión logística y seguimiento de entregas.</p>
         </div>
         <div className="flex items-center gap-4">
           <BackendStatusIndicator />
@@ -439,12 +515,12 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center text-green-600">
               <TrendingUp className="w-4 h-4 mr-1" />
-              <span className="text-sm">+3%</span>
+              <span className="text-sm">{stats.enTransito}</span>
             </div>
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl text-gray-800">{stats.eficienciaRutas}%</h3>
-            <p className="text-sm text-gray-600 mt-1">Eficiencia de Rutas</p>
+            <h3 className="text-2xl text-gray-800">{stats.enTransito}</h3>
+            <p className="text-sm text-gray-600 mt-1">En Tránsito</p>
           </div>
         </div>
       </div>
@@ -585,9 +661,7 @@ export default function Dashboard() {
                   <div className="text-right">
                     <p className="text-sm text-gray-800">${pedido.valor.toLocaleString()}</p>
                     <span className={`px-3 py-1 rounded-full text-xs ${getEstadoColor(pedido.estado)}`}>
-                      {pedido.estado === 'entregado' ? 'Entregado' :
-                        pedido.estado === 'en_transito' ? 'En Tránsito' :
-                          pedido.estado === 'pendiente' ? 'Pendiente' : pedido.estado}
+                      {formatEstado(pedido.estado)}
                     </span>
                   </div>
                   <div className="flex gap-2">

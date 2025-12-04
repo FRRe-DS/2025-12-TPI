@@ -2,10 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { shipmentService, ShipmentDTO } from '@/app/lib/middleware/services/shipment.service';
+import { shipmentService, ShipmentDTO } from '@/lib/middleware/services/shipment.service';
+import { useRouter } from 'next/navigation';
 
 export default function SeguimientoPage() {
+  const router = useRouter();
   const [shipments, setShipments] = useState<ShipmentDTO[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     status: '',
@@ -23,55 +26,25 @@ export default function SeguimientoPage() {
   const loadShipments = async () => {
     setIsLoading(true);
     try {
-      const data = await shipmentService.getShipments({
+      const data = await shipmentService.getShipmentsPaginated({
         status: filters.status || undefined,
         startDate: filters.startDate || undefined,
-        endDate: filters.endDate || undefined
+        endDate: filters.endDate || undefined,
+        page: page,
+        limit: 20
       });
-      // Asegurar que data sea siempre un array
-      const shipmentsArray = Array.isArray(data) ? data : [];
-      setShipments(shipmentsArray);
-      // Mock pagination
-      setTotalPages(Math.ceil(shipmentsArray.length / 20));
+
+      setShipments(data.shipments);
+      // Calcular paginación basada en el total real del backend
+      setTotalPages(Math.ceil(data.total / data.limit));
     } catch (err) {
       console.error('Error loading shipments:', err);
-      // Generate mock data for development
-      setShipments(generateMockShipments());
+      setShipments([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateMockShipments = (): ShipmentDTO[] => {
-    return Array.from({ length: 15 }, (_, i) => ({
-      id: `ship-${i + 1}`,
-      orderId: 1000 + i,
-      trackingNumber: `TRK${String(1000 + i).padStart(8, '0')}`,
-      originAddress: {
-        street: 'Calle 100 #15-20',
-        city: 'Bogotá',
-        state: 'Cundinamarca',
-        postal_code: '110111',
-        country: 'Colombia'
-      },
-      destinationAddress: {
-        street: 'Carrera 43A #14-58',
-        city: ['Medellín', 'Cali', 'Barranquilla', 'Cartagena'][i % 4],
-        state: ['Antioquia', 'Valle', 'Atlántico', 'Bolívar'][i % 4],
-        postal_code: '050001',
-        country: 'Colombia'
-      },
-      products: [],
-      transportMethod: {
-        id: `tm-${i % 4 + 1}`,
-        name: ['Terrestre Express', 'Terrestre Estándar', 'Aéreo', 'Marítimo'][i % 4]
-      },
-      status: ['PENDING', 'PROCESSING', 'IN_TRANSIT', 'DELIVERED'][i % 4],
-      totalCost: 50000 + (i * 10000),
-      createdAt: new Date(Date.now() - (i * 86400000)).toISOString(),
-      estimatedDeliveryDate: new Date(Date.now() + (i * 86400000)).toISOString()
-    }));
-  };
 
   const handleClearFilters = () => {
     setFilters({
@@ -101,7 +74,7 @@ export default function SeguimientoPage() {
       CANCELLED: 'Cancelado'
     };
     return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${badges[status] || badges.PENDING}`}>
+      <span className={`px - 2 py - 1 rounded text - xs font - medium ${badges[status] || badges.PENDING} `}>
         {labels[status] || status}
       </span>
     );
@@ -142,7 +115,7 @@ export default function SeguimientoPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <div className="rounded-lg border border-slate-200 p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Search */}
             <div className="lg:col-span-2">
@@ -219,7 +192,7 @@ export default function SeguimientoPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <div className=" rounded-lg border border-slate-200 overflow-hidden">
           {isLoading ? (
             <div className="p-8">
               <div className="animate-pulse space-y-4">
@@ -253,6 +226,12 @@ export default function SeguimientoPage() {
                       Transporte
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wide">
+                      Vehículo
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wide">
+                      Reserva
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wide">
                       ETA
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wide">
@@ -265,13 +244,13 @@ export default function SeguimientoPage() {
                     <tr
                       key={shipment.id}
                       className="hover:bg-blue-50 transition-colors cursor-pointer"
-                      onClick={() => window.location.href = `/operaciones/seguimiento/${shipment.id}`}
+                      onClick={() => router.push(`/operaciones/seguimiento/${shipment.id}`)}
                     >
                       <td className="px-4 py-3 text-sm font-mono text-slate-900">
                         {shipment.trackingNumber || 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-900">
-                        {shipment.orderId && shipment.orderId > 0 ? `#${shipment.orderId}` : 'N/A'}
+                        {shipment.orderId && shipment.orderId > 0 ? `#${shipment.orderId} ` : 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         {getStatusBadge(shipment.status)}
@@ -281,6 +260,12 @@ export default function SeguimientoPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">
                         {shipment.transportMethod?.name || 'N/A'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {shipment.vehicle ? `${shipment.vehicle.licensePlate} (${shipment.vehicle.model})` : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {shipment.reservationId ? `#${shipment.reservationId} ` : '-'}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">
                         {shipment.estimatedDeliveryDate ? formatDate(shipment.estimatedDeliveryDate) : 'N/A'}
