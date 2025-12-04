@@ -21,12 +21,12 @@ import {
   LogOut
 } from 'lucide-react';
 import { envConfig } from '@/lib/config/env.config';
-import PepackLogo from '@/components/pepacklogo.jpeg';
-
 const logo = (
   <Image
-    src={PepackLogo}
+    src="/pepack.png"
     alt="PEPACK - Paquetería con sabor"
+    width={128}
+    height={128}
     className="w-full h-full object-contain"
     priority
   />

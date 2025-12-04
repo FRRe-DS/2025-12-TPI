@@ -66,6 +66,9 @@ services:
       - REDIS_URL=redis://redis:6379
       - CONFIG_SERVICE_URL=http://config-service:3003
       - STOCK_SERVICE_URL=http://stock-integration-service:3002
+      # Google Maps Distance Matrix API
+      - DISTANCE_API_URL=https://maps.googleapis.com/maps/api/distancematrix/json
+      - DISTANCE_API_KEY=AIzaSyDr2dBGC7IveeZsyy_p5eIXtM13zSrdn8g
     depends_on:
       redis:
         condition: service_healthy

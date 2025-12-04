@@ -63,7 +63,7 @@ export default function TrackingPage() {
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl overflow-hidden bg-white shadow-md flex items-center justify-center">
                 <Image
-                  src="/pepacklogo.jpeg"
+                  src="/pepack.png"
                   alt="PEPACK - Paquetería con sabor"
                   width={48}
                   height={48}
