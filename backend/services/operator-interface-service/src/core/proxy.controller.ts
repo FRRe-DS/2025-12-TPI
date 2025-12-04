@@ -38,7 +38,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 export class ProxyController {
   private readonly logger = new Logger(ProxyController.name);
 
-  constructor(private serviceFacade: ServiceFacade) {}
+  constructor(private serviceFacade: ServiceFacade) { }
 
   /**
    * Endpoint especial para obtener el estado de los servicios
@@ -100,7 +100,7 @@ export class ProxyController {
       const headers = this.enrichHeaders(req);
       const response = await this.serviceFacade.request(
         method,
-        path,
+        req.url, // Use full URL to preserve query parameters
         req.body,
         headers,
       );
@@ -111,14 +111,14 @@ export class ProxyController {
       if (error instanceof HttpException) {
         const status = error.getStatus();
         const response = error.getResponse();
-        
+
         // Solo loguear como error si es 5xx, warnings para 4xx
         if (status >= 500) {
-           this.logger.error(`❌ Proxy Error ${status}: ${path}`, JSON.stringify(response));
+          this.logger.error(`❌ Proxy Error ${status}: ${path}`, JSON.stringify(response));
         } else {
-           this.logger.warn(`⚠️ Proxy Client Error ${status}: ${path}`, JSON.stringify(response));
+          this.logger.warn(`⚠️ Proxy Client Error ${status}: ${path}`, JSON.stringify(response));
         }
-        
+
         return res.status(status).json(response);
       }
 
