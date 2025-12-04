@@ -11,20 +11,20 @@ test.describe('Autenticación - Keycloak Integration', () => {
   });
 
   test('debe redirigir correctamente al hacer login', async ({ page }) => {
-    await page.goto('/');
+    // Si estamos corriendo contra producción o con autenticación real habilitada
+    if (process.env.USE_REAL_AUTH === 'true') {
+      await import('./utils/test-helpers').then(({ TestHelpers }) =>
+        TestHelpers.loginWithKeycloak(page)
+      );
+    } else {
+      // Test básico de redirección (mock/demo)
+      await page.goto('/');
+      const loginButton = page.getByRole('button', { name: 'Iniciar Sesión con Keycloak' });
+      await loginButton.click();
 
-    // Hacer clic en el botón de login
-    const loginButton = page.getByRole('button', { name: 'Iniciar Sesión con Keycloak' });
-    await loginButton.click();
-
-    // En un entorno de testing real, aquí verificaríamos la redirección a Keycloak
-    // Para este ejemplo, asumimos que redirige correctamente
-    // await expect(page.url()).toContain('keycloak');
-
-    // Nota: En testing real, necesitarías:
-    // 1. Mock del servidor Keycloak
-    // 2. O bypass de autenticación
-    // 3. O configuración de test users
+      // En entorno local sin KC configurado, esto podría fallar o redirigir a una URL de error
+      // Por lo tanto, solo verificamos que se intentó la acción
+    }
   });
 
   test('debe manejar sesión expirada', async ({ page }) => {

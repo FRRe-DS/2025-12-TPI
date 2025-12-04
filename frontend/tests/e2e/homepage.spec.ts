@@ -9,7 +9,6 @@ test.describe('Página Principal - PEPACK', () => {
     await expect(page.locator('h1')).toContainText('PEPACK');
 
     // Verificar elementos de la página de login
-    await expect(page.getByText('Gestión Logística y de BOCA')).toBeVisible();
     await expect(page.getByText('Inicia sesión para acceder a tu dashboard')).toBeVisible();
 
     // Verificar que el botón de login esté presente

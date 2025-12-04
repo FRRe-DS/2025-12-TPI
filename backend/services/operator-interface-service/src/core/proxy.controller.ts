@@ -9,10 +9,18 @@ import {
   NotFoundException,
   HttpException,
   Next,
+  Get,
+  Post,
+  Body,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ServiceFacade } from './service-facade';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiExcludeEndpoint, ApiBody } from '@nestjs/swagger';
+import {
+  CreateShippingRequestSchema,
+  ShippingDetailSchema,
+  TransportMethodSchema,
+} from './schemas/public-api.schemas';
 
 /**
  * ProxyController - Smart Proxy Router
@@ -44,7 +52,7 @@ export class ProxyController {
    * Endpoint especial para obtener el estado de los servicios
    * Útil para debugging y monitoreo
    */
-  @All('/gateway/status')
+  @Get('/gateway/status')
   @ApiOperation({ summary: 'Get gateway and services status' })
   @ApiResponse({
     status: 200,
@@ -52,6 +60,48 @@ export class ProxyController {
   })
   getStatus() {
     return this.serviceFacade.getRegistryStatus();
+  }
+
+  // ==========================================
+  // SHIPPING ENDPOINTS (Documented Proxy)
+  // ==========================================
+
+  @ApiTags('shipping')
+  @Post('/shipping')
+  @ApiOperation({
+    summary: 'Create Shipment',
+    description: 'Crea un nuevo envío. La petición es redirigida transparentemente al Shipping Service.'
+  })
+  @ApiBody({ type: CreateShippingRequestSchema })
+  @ApiResponse({ status: 201, type: ShippingDetailSchema })
+  async createShipping(@Req() req: Request, @Res() res: Response, @Next() next: any) {
+    return this.proxyRequest(req, res, next);
+  }
+
+  @ApiTags('shipping')
+  @Get('/shipping/:id')
+  @ApiOperation({
+    summary: 'Get Shipment Details',
+    description: 'Obtiene el detalle completo de un envío. Redirigido al Shipping Service.'
+  })
+  @ApiResponse({ status: 200, type: ShippingDetailSchema })
+  async getShipping(@Req() req: Request, @Res() res: Response, @Next() next: any) {
+    return this.proxyRequest(req, res, next);
+  }
+
+  // ==========================================
+  // CONFIG ENDPOINTS (Documented Proxy)
+  // ==========================================
+
+  @ApiTags('config')
+  @Get('/config/transport-methods')
+  @ApiOperation({
+    summary: 'List Transport Methods',
+    description: 'Lista los métodos de transporte disponibles. Redirigido al Config Service.'
+  })
+  @ApiResponse({ status: 200, type: [TransportMethodSchema] })
+  async getTransportMethods(@Req() req: Request, @Res() res: Response, @Next() next: any) {
+    return this.proxyRequest(req, res, next);
   }
 
   /**
@@ -62,16 +112,7 @@ export class ProxyController {
    * no bloquee otras rutas específicas
    */
   @All('*')
-  @ApiOperation({ summary: 'Smart proxy to internal microservices' })
-  @ApiResponse({
-    status: 200,
-    description: 'Response from target microservice',
-  })
-  @ApiResponse({
-    status: 502,
-    description: 'Bad gateway - service unavailable',
-  })
-  @ApiResponse({ status: 404, description: 'Service not found for this route' })
+  @ApiExcludeEndpoint() // Ocultar del Swagger para no ensuciar
   async proxyRequest(
     @Req() req: Request,
     @Res() res: Response,
@@ -88,7 +129,6 @@ export class ProxyController {
     // Manejar OPTIONS (preflight) directamente sin proxyear
     // Esto asegura que CORS funcione incluso si los servicios backend están caídos
     if (method === 'OPTIONS') {
-      this.logger.log(`✅ CORS Preflight: ${path}`);
       // NestJS CORS middleware ya maneja esto, pero lo confirmamos explícitamente
       return res.status(200).end();
     }
@@ -182,3 +222,4 @@ export class ProxyController {
     return filtered;
   }
 }
+

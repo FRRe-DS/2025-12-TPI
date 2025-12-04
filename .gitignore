@@ -288,3 +288,10 @@ backend/shared/utils/dist/
 *.tsbuildinfo
 tsconfig.tsbuildinfo
 zutils/
+# Playwright test results
+test-results/
+frontend/test-results/
+playwright-report/
+frontend/playwright-report/
+blob-report/
+frontend/blob-report/

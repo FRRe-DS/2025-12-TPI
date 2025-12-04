@@ -2,7 +2,7 @@
 
 Documentación completa y organizada del sistema de logística.
 
-**Última actualización:** Diciembre 2025
+**Última actualización:** 4 de Diciembre 2025
 
 ---
 
@@ -12,9 +12,8 @@ Documentación completa y organizada del sistema de logística.
 docs/
 ├── README.md                     # Este archivo (índice)
 ├── SYSTEM-ARCHITECTURE.md        # Arquitectura general del sistema
-├── KEYCLOAK_INTEGRATION.md       # Integración con Keycloak
 │
-├── backend/                      # Documentación Backend
+├── backend/                     # Documentación Backend
 │   ├── 01-MICROSERVICES.md      # Microservicios (Config, Shipping, Stock, Gateway)
 │   ├── 02-API-GATEWAY.md        # Facade Pattern + Service Discovery
 │   ├── 03-DATABASE.md           # Schema Prisma y migraciones

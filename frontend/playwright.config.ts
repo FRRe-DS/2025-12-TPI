@@ -1,4 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+
+import * as path from 'path';
+
+// Load environment variables from .env file
+dotenv.config({ path: path.resolve(__dirname, 'tests', '.env') });
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -17,15 +23,15 @@ export default defineConfig({
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-  /* Base URL to use in actions like `await page.goto('/')`. */
-  baseURL: 'http://localhost:3000',
+    /* Base URL to use in actions like `await page.goto('/')`. */
+    baseURL: process.env.BASE_URL || 'http://localhost:3000',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
     /* Take screenshot only when test fails */
     screenshot: 'only-on-failure',
-    /* Record video only when test fails */
-    video: 'retain-on-failure',
+    /* Record video for all tests */
+    video: 'on',
   },
 
   /* Configure projects for major browsers */
@@ -67,7 +73,7 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  // Deshabilitado para desarrollo - iniciar servidor manualmente
+  /* Run your local dev server before starting the tests */
   // webServer: {
   //   command: 'pnpm dev',
   //   url: 'http://localhost:3000',

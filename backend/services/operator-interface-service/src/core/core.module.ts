@@ -3,7 +3,7 @@ import { HttpModule } from '@nestjs/axios';
 import { ServiceRegistry } from './service-registry';
 import { ServiceFacade } from './service-facade';
 import { ProxyController } from './proxy.controller';
-import { DocsController } from './docs.controller';
+
 
 /**
  * CoreModule - Módulo central del Operator Interface Service
@@ -27,12 +27,12 @@ import { DocsController } from './docs.controller';
  */
 @Module({
   imports: [HttpModule],
-  controllers: [DocsController, ProxyController], // DocsController antes para evitar conflictos (aunque tiene prefijo)
+  controllers: [ProxyController], // DocsController eliminado, ahora manejado en ProxyController
   providers: [ServiceRegistry, ServiceFacade],
   exports: [ServiceRegistry, ServiceFacade],
 })
 export class CoreModule implements OnModuleDestroy {
-  constructor(private serviceRegistry: ServiceRegistry) {}
+  constructor(private serviceRegistry: ServiceRegistry) { }
 
   /**
    * Limpia recursos cuando el módulo se destruye

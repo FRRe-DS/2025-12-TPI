@@ -15,6 +15,33 @@ export class TestHelpers {
   }
 
   /**
+   * Realiza login real contra Keycloak
+   */
+  static async loginWithKeycloak(page: Page): Promise<void> {
+    await page.goto('/');
+
+    // 1. Clic en botón de login
+    await page.getByRole('button', { name: 'Iniciar Sesión con Keycloak' }).click();
+
+    // 2. Esperar redirección a Keycloak (verificamos por URL o elemento único de KC)
+    await page.waitForURL(/.*keycloak.*/);
+
+    // 3. Llenar credenciales (usando env vars o defaults)
+    const username = process.env.TEST_USERNAME || 'admin';
+    const password = process.env.TEST_PASSWORD || 'admin';
+
+    await page.fill('#username', username);
+    await page.fill('#password', password);
+
+    // 4. Submit
+    await page.click('#kc-login'); // Selector estándar de Keycloak
+
+    // 5. Esperar retorno al dashboard
+    await page.waitForURL(/.*dashboard.*/);
+    await expect(page.getByText('PEPACK - Gestión Logística')).toBeVisible();
+  }
+
+  /**
    * Espera a que se cargue el dashboard completamente
    */
   static async waitForDashboardLoad(page: Page): Promise<void> {
