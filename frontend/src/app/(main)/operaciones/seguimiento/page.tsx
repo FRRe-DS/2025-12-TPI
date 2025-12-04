@@ -115,7 +115,7 @@ export default function SeguimientoPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <div className="rounded-lg border border-slate-200 p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Search */}
             <div className="lg:col-span-2">
@@ -192,7 +192,7 @@ export default function SeguimientoPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <div className=" rounded-lg border border-slate-200 overflow-hidden">
           {isLoading ? (
             <div className="p-8">
               <div className="animate-pulse space-y-4">
