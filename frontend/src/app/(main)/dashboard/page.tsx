@@ -98,7 +98,7 @@ export default function Dashboard() {
   const checkBackendStatus = useCallback(async () => {
     try {
       // Intentar obtener envíos para verificar conexión
-      await shipmentService.getShipments({ limit: 1 });
+      await shipmentService.getShipments();
       setBackendStatus({ available: true, url: 'Backend Conectado' });
       setModeInfo({ mode: 'backend', features: ['Datos en tiempo real', 'Actualización automática'] });
     } catch (error) {
